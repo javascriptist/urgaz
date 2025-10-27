@@ -168,7 +168,7 @@ function getExchangeRate(): number {
 }
 
 // Helper function to validate order amount
-async function validateOrderAmount(req: MedusaRequest, orderId: string, amount: number): Promise<{ valid: boolean; order?: any }> {
+async function validateOrderAmount(req: MedusaRequest, orderId: string, amount: number): Promise<{ valid: boolean; error?: 'NOT_FOUND' | 'AMOUNT_MISMATCH'; order?: any }> {
   try {
     const orderModuleService = req.scope.resolve(Modules.ORDER)
     
@@ -177,7 +177,7 @@ async function validateOrderAmount(req: MedusaRequest, orderId: string, amount: 
     
     if (!orders || orders.length === 0) {
       console.log('❌ Order not found:', orderId)
-      return { valid: false }
+      return { valid: false, error: 'NOT_FOUND' }
     }
     
     const order = orders[0]
@@ -208,13 +208,13 @@ async function validateOrderAmount(req: MedusaRequest, orderId: string, amount: 
         received: amount + ' tiyin',
         difference: Math.abs(amount - orderTotalInTiyin) + ' tiyin'
       })
-      return { valid: false, order }
+      return { valid: false, error: 'AMOUNT_MISMATCH', order }
     }
     
     return { valid: true, order }
   } catch (error) {
     console.error('❌ Error validating order:', error)
-    return { valid: false }
+    return { valid: false, error: 'NOT_FOUND' }
   }
 }
 
@@ -278,8 +278,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
         const validation = await validateOrderAmount(req, orderId, amount)
         if (!validation.valid) {
-          console.log('❌ CheckPerformTransaction: Invalid amount for order', orderId)
-          return res.json(createError(id, ERRORS.INVALID_AMOUNT))
+          // Return appropriate error based on validation failure reason
+          if (validation.error === 'NOT_FOUND') {
+            console.log('❌ CheckPerformTransaction: Order not found', orderId)
+            return res.json(createError(id, ERRORS.ORDER_NOT_FOUND))
+          } else {
+            console.log('❌ CheckPerformTransaction: Invalid amount for order', orderId)
+            return res.json(createError(id, ERRORS.INVALID_AMOUNT))
+          }
         }
 
         console.log('✅ CheckPerformTransaction: OK', { account, amount })
@@ -315,8 +321,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         // Validate order exists and amount matches
         const validation = await validateOrderAmount(req, orderId, amount)
         if (!validation.valid) {
-          console.log('❌ CreateTransaction: Invalid amount for order', orderId)
-          return res.json(createError(id, ERRORS.INVALID_AMOUNT))
+          // Return appropriate error based on validation failure reason
+          if (validation.error === 'NOT_FOUND') {
+            console.log('❌ CreateTransaction: Order not found', orderId)
+            return res.json(createError(id, ERRORS.ORDER_NOT_FOUND))
+          } else {
+            console.log('❌ CreateTransaction: Invalid amount for order', orderId)
+            return res.json(createError(id, ERRORS.INVALID_AMOUNT))
+          }
         }
 
         // Check if this order already has a pending transaction
