@@ -5,6 +5,7 @@ import { ArrowUturnLeft } from "@medusajs/icons"
 
 interface Order {
   id: string
+  display_id: number
   created_at: string
   currency_code: string
   summary: {
@@ -32,6 +33,24 @@ const POSOrdersPage = () => {
   const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
+  const [exchangeRate, setExchangeRate] = useState<number>(12750)
+
+  // Fetch exchange rate
+  const fetchExchangeRate = async () => {
+    try {
+      const response = await fetch("/admin/exchange-rate", {
+        credentials: "include",
+      })
+      if (response.ok) {
+        const data = await response.json()
+        if (data.rate) {
+          setExchangeRate(data.rate)
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch exchange rate:", error)
+    }
+  }
 
   const fetchOrders = async () => {
     setLoading(true)
@@ -54,16 +73,15 @@ const POSOrdersPage = () => {
   }
 
   useEffect(() => {
+    fetchExchangeRate()
     fetchOrders()
   }, [])
 
-  const formatPrice = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount)
+  const formatPriceInUZS = (amountUSD: number) => {
+    // amountUSD is in cents, convert to dollars first
+    const dollars = amountUSD / 100
+    const uzs = dollars * exchangeRate
+    return Math.round(uzs).toLocaleString() + ' UZS'
   }
 
   const calculateOrderTotal = (order: Order) => {
@@ -111,6 +129,7 @@ const POSOrdersPage = () => {
         <Table>
           <Table.Header>
             <Table.Row>
+              <Table.HeaderCell>Order #</Table.HeaderCell>
               <Table.HeaderCell>Date & Time</Table.HeaderCell>
               <Table.HeaderCell>Customer</Table.HeaderCell>
               <Table.HeaderCell>Items</Table.HeaderCell>
@@ -123,13 +142,13 @@ const POSOrdersPage = () => {
           <Table.Body>
             {loading ? (
               <Table.Row>
-                <Table.Cell colSpan={7} className="text-center py-8 text-ui-fg-subtle">
+                <Table.Cell className="text-center py-8 text-ui-fg-subtle">
                   Loading...
                 </Table.Cell>
               </Table.Row>
             ) : orders.length === 0 ? (
               <Table.Row>
-                <Table.Cell colSpan={7} className="text-center py-8 text-ui-fg-muted">
+                <Table.Cell className="text-center py-8 text-ui-fg-muted">
                   No in-store sales found
                 </Table.Cell>
               </Table.Row>
@@ -140,6 +159,11 @@ const POSOrdersPage = () => {
                   className="cursor-pointer hover:bg-ui-bg-subtle-hover transition-colors"
                   onClick={() => navigate(`/orders/${order.id}`)}
                 >
+                  <Table.Cell>
+                    <div className="text-sm font-mono text-ui-fg-base">
+                      #{order.display_id}
+                    </div>
+                  </Table.Cell>
                   <Table.Cell>
                     <div className="text-sm text-ui-fg-base">
                       {formatDate(order.metadata?.sold_at || order.created_at)}
@@ -169,7 +193,7 @@ const POSOrdersPage = () => {
                     </Badge>
                   </Table.Cell>
                   <Table.Cell className="font-medium text-ui-fg-base">
-                    {formatPrice(calculateOrderTotal(order), order.currency_code)}
+                    {formatPriceInUZS(calculateOrderTotal(order))}
                   </Table.Cell>
                   <Table.Cell className="text-ui-fg-subtle text-sm">
                     {order.metadata?.sold_by || "-"}
