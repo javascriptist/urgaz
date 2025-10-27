@@ -1,4 +1,5 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { Modules } from "@medusajs/framework/utils"
 
 // CRITICAL: Disable ALL Medusa authentication for this endpoint
 // Payme calls this endpoint directly with their own Basic Auth
@@ -149,6 +150,47 @@ function createResponse(id: any, result: any) {
   }
 }
 
+// Helper function to validate order amount
+async function validateOrderAmount(req: MedusaRequest, orderId: string, amount: number): Promise<{ valid: boolean; order?: any }> {
+  try {
+    const orderModuleService = req.scope.resolve(Modules.ORDER)
+    
+    // Find order by ID
+    const orders = await orderModuleService.listOrders({ id: orderId })
+    
+    if (!orders || orders.length === 0) {
+      console.log('❌ Order not found:', orderId)
+      return { valid: false }
+    }
+    
+    const order = orders[0]
+    
+    // Convert order total to tiyin (1 UZS = 100 tiyin)
+    // Order total is in cents, assuming 1 UZS = 100 cents
+    const orderTotal = Number(order.total) || 0
+    const orderTotalInTiyin = Math.round(orderTotal * 100)
+    
+    console.log('💰 Amount validation:', {
+      orderId,
+      requestAmount: amount,
+      orderTotal: orderTotal,
+      orderTotalInTiyin,
+      match: amount === orderTotalInTiyin
+    })
+    
+    // Amount must match exactly
+    if (amount !== orderTotalInTiyin) {
+      console.log('❌ Amount mismatch:', { expected: orderTotalInTiyin, received: amount })
+      return { valid: false, order }
+    }
+    
+    return { valid: true, order }
+  } catch (error) {
+    console.error('❌ Error validating order:', error)
+    return { valid: false }
+  }
+}
+
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const body = req.body as any
   const { method, params, id } = body || {}
@@ -200,8 +242,19 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           return res.json(createError(id, ERRORS.INVALID_ACCOUNT))
         }
 
-        // TODO: Verify order exists and amount matches
-        // For now, accept all transactions with any account field
+        // Validate order exists and amount matches
+        const orderId = account.order_id
+        if (!orderId) {
+          console.log('❌ Missing order_id in account')
+          return res.json(createError(id, ERRORS.INVALID_ACCOUNT))
+        }
+
+        const validation = await validateOrderAmount(req, orderId, amount)
+        if (!validation.valid) {
+          console.log('❌ CheckPerformTransaction: Invalid amount for order', orderId)
+          return res.json(createError(id, ERRORS.INVALID_AMOUNT))
+        }
+
         console.log('✅ CheckPerformTransaction: OK', { account, amount })
 
         return res.json(createResponse(id, {
@@ -227,22 +280,33 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
         // Check if this order already has a pending transaction
         const orderId = account.order_id
-        if (orderId) {
-          const existingTransactionId = orderTransactions.get(orderId)
-          if (existingTransactionId) {
-            const existingTx = transactions.get(existingTransactionId)
-            // If there's a pending transaction (state 1), reject new one
-            if (existingTx && existingTx.state === 1) {
-              console.log('❌ Order already has pending transaction:', orderId)
-              return res.json(createError(id, {
-                code: -31099,
-                message: {
-                  uz: "Buyurtma allaqachon to'lovda",
-                  ru: "Заказ уже ожидает оплаты",
-                  en: "Order already has pending payment"
-                }
-              }))
-            }
+        if (!orderId) {
+          console.log('❌ Missing order_id in account')
+          return res.json(createError(id, ERRORS.INVALID_ACCOUNT))
+        }
+
+        // Validate order exists and amount matches
+        const validation = await validateOrderAmount(req, orderId, amount)
+        if (!validation.valid) {
+          console.log('❌ CreateTransaction: Invalid amount for order', orderId)
+          return res.json(createError(id, ERRORS.INVALID_AMOUNT))
+        }
+
+        // Check if this order already has a pending transaction
+        const existingTransactionId = orderTransactions.get(orderId)
+        if (existingTransactionId) {
+          const existingTx = transactions.get(existingTransactionId)
+          // If there's a pending transaction (state 1), reject new one
+          if (existingTx && existingTx.state === 1) {
+            console.log('❌ Order already has pending transaction:', orderId)
+            return res.json(createError(id, {
+              code: -31099,
+              message: {
+                uz: "Buyurtma allaqachon to'lovda",
+                ru: "Заказ уже ожидает оплаты",
+                en: "Order already has pending payment"
+              }
+            }))
           }
         }
 
