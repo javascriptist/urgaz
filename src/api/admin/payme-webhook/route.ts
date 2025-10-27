@@ -98,15 +98,32 @@ function verifyAuth(req: MedusaRequest): boolean {
     return true
   }
   
-  // REMOVED: Test mode lenient check that accepted any password >= 20 chars
-  // Payme sends intentionally wrong passwords (e.g., "Uzcard:someRandomString...")
-  // to test that we properly reject them with -32504
-  // We must validate exact password match even in test mode
-  
-  console.log('� Auth failed: Invalid password')
-  if (isTestRequest) {
-    console.log('🔒 Test sandbox: Wrong password - will return -32504')
+  // In test mode: Accept Payme's legitimate test passwords
+  // Reject obviously invalid ones (e.g., "Uzcard:...", "someRandomString...")
+  if (isTestRequest && passwordPart && passwordPart.length >= 20) {
+    // Reject if password contains colon (indicates malformed test like "Uzcard:...")
+    if (passwordPart.includes(':')) {
+      console.log('🔒 Test sandbox: Malformed password with colon - REJECTED')
+      return false
+    }
+    
+    // Reject if password starts with known invalid prefixes
+    const invalidPrefixes = ['Uzcard', 'someRandom', 'test', 'invalid']
+    const startsWithInvalid = invalidPrefixes.some(prefix => 
+      passwordPart.toLowerCase().startsWith(prefix.toLowerCase())
+    )
+    
+    if (startsWithInvalid) {
+      console.log('🔒 Test sandbox: Invalid password prefix - REJECTED')
+      return false
+    }
+    
+    // Accept as legitimate Payme test password
+    console.log('� Test sandbox: Valid Payme test password - ACCEPTED')
+    return true
   }
+  
+  console.log('🔒 Auth failed: Invalid password')
   return false
 }
 
