@@ -1,5 +1,7 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
+import * as fs from "fs"
+import * as path from "path"
 
 // CRITICAL: Disable ALL Medusa authentication for this endpoint
 // Payme calls this endpoint directly with their own Basic Auth
@@ -150,6 +152,21 @@ function createResponse(id: any, result: any) {
   }
 }
 
+// Helper function to get exchange rate
+function getExchangeRate(): number {
+  try {
+    const STORAGE_PATH = path.join(process.cwd(), "data", "exchange-rate.json")
+    if (fs.existsSync(STORAGE_PATH)) {
+      const data = fs.readFileSync(STORAGE_PATH, "utf-8")
+      const parsed = JSON.parse(data)
+      return parsed.rate || 12750
+    }
+  } catch (e) {
+    console.error('Error reading exchange rate:', e)
+  }
+  return 12750 // Default: 1 USD = 12,750 UZS
+}
+
 // Helper function to validate order amount
 async function validateOrderAmount(req: MedusaRequest, orderId: string, amount: number): Promise<{ valid: boolean; order?: any }> {
   try {
@@ -165,22 +182,32 @@ async function validateOrderAmount(req: MedusaRequest, orderId: string, amount: 
     
     const order = orders[0]
     
-    // Convert order total to tiyin (1 UZS = 100 tiyin)
-    // Order total is in cents, assuming 1 UZS = 100 cents
-    const orderTotal = Number(order.total) || 0
-    const orderTotalInTiyin = Math.round(orderTotal * 100)
+    // Get exchange rate (USD to UZS)
+    const exchangeRate = getExchangeRate()
+    
+    // Order total is in USD (stored as cents: $10.00 = 1000)
+    // Convert: USD cents → USD → UZS → Tiyin
+    const orderTotalUSD = Number(order.total) / 100 || 0 // Convert cents to dollars
+    const orderTotalUZS = orderTotalUSD * exchangeRate    // Convert USD to UZS
+    const orderTotalInTiyin = Math.round(orderTotalUZS * 100) // Convert UZS to Tiyin
     
     console.log('💰 Amount validation:', {
       orderId,
-      requestAmount: amount,
-      orderTotal: orderTotal,
-      orderTotalInTiyin,
+      orderTotalUSD: orderTotalUSD.toFixed(2) + ' USD',
+      exchangeRate: exchangeRate + ' UZS/USD',
+      orderTotalUZS: orderTotalUZS.toFixed(2) + ' UZS',
+      orderTotalInTiyin: orderTotalInTiyin + ' tiyin',
+      requestedAmount: amount + ' tiyin',
       match: amount === orderTotalInTiyin
     })
     
     // Amount must match exactly
     if (amount !== orderTotalInTiyin) {
-      console.log('❌ Amount mismatch:', { expected: orderTotalInTiyin, received: amount })
+      console.log('❌ Amount mismatch:', { 
+        expected: orderTotalInTiyin + ' tiyin', 
+        received: amount + ' tiyin',
+        difference: Math.abs(amount - orderTotalInTiyin) + ' tiyin'
+      })
       return { valid: false, order }
     }
     
