@@ -29,6 +29,7 @@ const orderTransactions = new Map<string, string>()
 
 // Store the current password (in production, store in database)
 let currentPassword = process.env.PAYME_PASSWORD || ''
+const defaultPassword = process.env.PAYME_PASSWORD || ''
 
 // Merchant API error codes
 const ERRORS = {
@@ -101,11 +102,11 @@ function verifyAuth(req: MedusaRequest): boolean {
     return true
   }
   
-  // If password was changed via ChangePassword, ONLY accept the new password
-  // Reject any other password, even in test mode
-  const hasCustomPassword = expectedPassword !== process.env.PAYME_PASSWORD
-  if (hasCustomPassword) {
-    console.log('🔒 Auth failed: Password was changed, only new password accepted')
+  // If password was changed via ChangePassword AND not in test mode, ONLY accept the new password
+  // In test mode, still allow flexible authentication for sandbox testing
+  const hasCustomPassword = currentPassword !== defaultPassword
+  if (hasCustomPassword && !isTestRequest) {
+    console.log('🔒 Auth failed: Password was changed (production mode), only new password accepted')
     return false
   }
   
