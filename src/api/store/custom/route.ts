@@ -1,5 +1,5 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
-import { paymeRpc, uzsToTiyin, isPaymeEnabled } from "../../../lib/payme";
+import { paymeRpc, uzsToTiyin, isPaymeEnabled, getPaymeReceiptExtraParams } from "../../../lib/payme";
 
 // GET health
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
@@ -24,10 +24,17 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   // According to Payme, account fields are echoed back in callbacks
-  const { ok, result, error, raw } = await paymeRpc("receipt.create", {
+  const extra = getPaymeReceiptExtraParams()
+  const params = {
     amount: uzsToTiyin(amount),
-    account: { order_id: orderId },
-  })
+    account: {
+      order_id: orderId,
+      ...(typeof extra.account === "object" ? extra.account : {}),
+    },
+    ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== "account")),
+  }
+
+  const { ok, result, error, raw } = await paymeRpc("receipts.create", params)
 
   if (!ok) {
     if ((error as any)?.message === "PAYME_AUTH_MISSING") {
@@ -36,7 +43,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     return res.status(502).json({ message: "Failed to create Payme receipt", error })
   }
 
-  // Payme typically returns a receipt with an id to build a redirect URL like checkout.paycom.uz/<id>
+  // Payme returns a receipt with _id to build a redirect URL like checkout.paycom.uz/<_id>
   // We pass back raw so the frontend can redirect accordingly.
   return res.json({ success: true, data: result, raw })
 }

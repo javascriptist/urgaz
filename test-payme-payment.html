@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Payme Payment</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+  <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+    <h1 class="text-3xl font-bold mb-2 flex items-center gap-2">
+      💳 Test Payme Payment
+    </h1>
+    <p class="text-gray-600 mb-6">
+      Simple frontend test for your Payme Merchant API integration
+    </p>
+    
+    <!-- Test Form -->
+    <div class="space-y-4 mb-6">
+      <div>
+        <label class="block text-sm font-medium mb-2">Order ID</label>
+        <input 
+          type="text" 
+          id="orderId" 
+          value="test-order-123" 
+          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="test-order-123"
+        />
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium mb-2">Amount (UZS)</label>
+        <input 
+          type="number" 
+          id="amount" 
+          value="50000" 
+          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="50000"
+        />
+        <p class="text-xs text-gray-500 mt-1">
+          1 UZS = 100 Tiyin (Payme uses Tiyin internally)
+        </p>
+      </div>
+      
+      <button 
+        onclick="generatePaymentLink()" 
+        id="payButton"
+        class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Generate Payment Link & Pay
+      </button>
+    </div>
+    
+    <!-- Result Display -->
+    <div id="result" class="hidden rounded-lg p-4 mb-4"></div>
+    
+    <!-- Backend Configuration -->
+    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+      <h2 class="font-semibold mb-3">⚙️ Backend Configuration</h2>
+      <div class="space-y-2 text-sm">
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Backend URL:</label>
+          <input 
+            type="text" 
+            id="backendUrl" 
+            value="https://9ed63f6b6a5f.ngrok-free.app" 
+            class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm font-mono"
+          />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Publishable API Key:</label>
+          <input 
+            type="text" 
+            id="apiKey" 
+            value="pk_fe768fd98de7445ef718c37c9f15616430e92f90bf71aafb27d249faed5e158b" 
+            class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm font-mono"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <h2 class="font-semibold mb-2 text-blue-900">📖 How It Works</h2>
+      <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+        <li>Click "Generate Payment Link & Pay" button</li>
+        <li>Your backend generates a Payme checkout URL</li>
+        <li>You'll be redirected to Payme's payment page</li>
+        <li>Complete payment (use test card: 8600 xxxx xxxx xxxx)</li>
+        <li>Payme calls your backend webhook to confirm</li>
+        <li>You're redirected back to this page</li>
+      </ol>
+    </div>
+
+    <!-- Payment Success Check -->
+    <div id="successMessage" class="hidden bg-green-50 border border-green-200 rounded-lg p-4">
+      <h2 class="font-semibold text-green-900 mb-2">✅ Payment Completed!</h2>
+      <p class="text-sm text-green-800 mb-3">
+        Check your server terminal to see the transaction details from Payme's webhook calls.
+      </p>
+      <p class="text-xs text-green-700 font-mono">
+        Look for: CheckPerformTransaction → CreateTransaction → PerformTransaction
+      </p>
+    </div>
+
+    <!-- Test Card Info -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <h2 class="font-semibold mb-2 text-yellow-900">💳 Test Card Numbers</h2>
+      <div class="text-sm text-yellow-800 space-y-1">
+        <p><strong>Success:</strong> <code class="bg-yellow-100 px-2 py-0.5 rounded">8600 xxxx xxxx xxxx</code> (any valid format)</p>
+        <p><strong>Failure:</strong> <code class="bg-yellow-100 px-2 py-0.5 rounded">8600 xxxx xxxx 0000</code> (ends with 0000)</p>
+        <p class="text-xs mt-2">Use any expiry date (MM/YY) and any CVV code for testing</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Check if payment was successful (callback from Payme)
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('payment') === 'success') {
+      document.getElementById('successMessage').classList.remove('hidden')
+      // Scroll to success message
+      document.getElementById('successMessage').scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+
+    async function generatePaymentLink() {
+      const orderId = document.getElementById('orderId').value
+      const amount = parseInt(document.getElementById('amount').value)
+      const backendUrl = document.getElementById('backendUrl').value
+      const apiKey = document.getElementById('apiKey').value
+      const resultDiv = document.getElementById('result')
+      const payButton = document.getElementById('payButton')
+      
+      if (!orderId || !amount || amount <= 0) {
+        showResult('error', '❌ Error', 'Please enter valid order ID and amount')
+        return
+      }
+
+      try {
+        // Disable button and show loading
+        payButton.disabled = true
+        payButton.textContent = 'Generating payment link...'
+        
+        showResult('loading', '⏳ Processing', 'Calling backend to generate payment link...')
+        
+        const response = await fetch(`${backendUrl}/store/payme-merchant/generate-link`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-publishable-api-key': apiKey
+          },
+          body: JSON.stringify({
+            orderId: orderId,
+            amount: amount,
+            callbackUrl: window.location.href.split('?')[0] + '?payment=success'
+          })
+        })
+        
+        const data = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        if (data.success && data.paymentUrl) {
+          showResult('success', '✅ Payment Link Generated!', `
+            <div class="space-y-2">
+              <p><strong>Order ID:</strong> ${data.orderId}</p>
+              <p><strong>Amount:</strong> ${amount.toLocaleString()} UZS</p>
+              <p><strong>Merchant ID:</strong> ${data.merchantId}</p>
+              <div class="mt-3 p-3 bg-white rounded border">
+                <p class="text-xs text-gray-600 mb-1">Payment URL:</p>
+                <p class="text-xs font-mono break-all">${data.paymentUrl}</p>
+              </div>
+              <p class="text-sm mt-3">Redirecting to Payme in 2 seconds...</p>
+            </div>
+          `)
+          
+          // Redirect to Payme after 2 seconds
+          setTimeout(() => {
+            window.location.href = data.paymentUrl
+          }, 2000)
+        } else {
+          throw new Error(data.error || 'Failed to generate payment link')
+        }
+      } catch (error) {
+        console.error('Payment error:', error)
+        showResult('error', '❌ Error', `
+          <p class="mb-2">${error.message}</p>
+          <div class="mt-3 p-3 bg-white rounded text-xs">
+            <p class="font-semibold mb-1">Troubleshooting:</p>
+            <ul class="list-disc list-inside space-y-1 text-gray-700">
+              <li>Make sure your backend is running (npm run dev)</li>
+              <li>Verify ngrok tunnel is active</li>
+              <li>Check backend URL is correct</li>
+              <li>Check API key is correct</li>
+              <li>Open browser console (F12) for more details</li>
+            </ul>
+          </div>
+        `)
+      } finally {
+        payButton.disabled = false
+        payButton.textContent = 'Generate Payment Link & Pay'
+      }
+    }
+
+    function showResult(type, title, message) {
+      const resultDiv = document.getElementById('result')
+      
+      const colors = {
+        loading: 'bg-blue-100 border-blue-300 text-blue-800',
+        success: 'bg-green-100 border-green-300 text-green-800',
+        error: 'bg-red-100 border-red-300 text-red-800'
+      }
+      
+      resultDiv.className = `rounded-lg p-4 mb-4 border ${colors[type] || colors.error}`
+      resultDiv.innerHTML = `
+        <h3 class="font-semibold mb-2">${title}</h3>
+        <div class="text-sm">${message}</div>
+      `
+      resultDiv.classList.remove('hidden')
+      
+      // Scroll to result
+      resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  </script>
+</body>
+</html>

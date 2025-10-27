@@ -77,7 +77,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
           name: "Uzbekistan",
           currency_code: "usd",
           countries,
-          payment_providers: ["pp_system_default"],
+          payment_providers: [
+            "pp_system_default",
+            ...(process.env.STRIPE_ENABLED === "true" ? ["pp_stripe"] : []),
+          ],
         },
       ],
     },
@@ -326,6 +329,14 @@ export default async function seedDemoData({ container }: ExecArgs) {
         },
         {
           name: "Merch",
+          is_active: true,
+        },
+        {
+          name: "Carpets",
+          is_active: true,
+        },
+        {
+          name: "Roll Carpets",
           is_active: true,
         },
       ],
@@ -817,6 +828,117 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+            },
+          ],
+          sales_channels: [
+            {
+              id: defaultSalesChannel[0].id,
+            },
+          ],
+        },
+        {
+          title: "Persian Blue Roll Carpet",
+          category_ids: [
+            categoryResult.find((cat) => cat.name === "Roll Carpets")!.id,
+          ],
+          description:
+            "Beautiful Persian blue pattern carpet available by the running meter. High-quality wool blend suitable for living rooms and bedrooms.",
+          handle: "persian-blue-roll",
+          weight: 2500, // grams per square meter
+          status: ProductStatus.PUBLISHED,
+          shipping_profile_id: shippingProfile.id,
+          images: [
+            {
+              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/carpet-persian-01.jpg",
+            },
+          ],
+          metadata: {
+            carpet_type: "roll",
+            available_widths: ["2m", "3m", "4m", "5m"],
+            width_prices: {
+              "2m": 35.00,
+              "3m": 45.00,
+              "4m": 55.00,
+              "5m": 65.00
+            },
+            price_per_running_meter: 45.00,
+            min_length: 1,
+            max_length: 50,
+            cutting_fee: 10.00,
+            preparation_time_days: 3,
+            material: "Wool blend",
+            pile_height: "8mm",
+            pattern: "Traditional Persian"
+          },
+          variants: [
+            {
+              title: "Base Roll - Price per meter",
+              sku: "PERSIAN-BLUE-ROLL",
+              prices: [
+                {
+                  amount: 45.00,
+                  currency_code: "usd",
+                },
+              ],
+              metadata: {
+                is_base_variant: true,
+                note: "Actual price calculated based on width and length"
+              }
+            },
+          ],
+          sales_channels: [
+            {
+              id: defaultSalesChannel[0].id,
+            },
+          ],
+        },
+        {
+          title: "Modern Grey Roll Carpet",
+          category_ids: [
+            categoryResult.find((cat) => cat.name === "Roll Carpets")!.id,
+          ],
+          description:
+            "Contemporary grey carpet with subtle texture. Perfect for modern interiors. Available in custom lengths up to 50 meters.",
+          handle: "modern-grey-roll",
+          weight: 2200,
+          status: ProductStatus.PUBLISHED,
+          shipping_profile_id: shippingProfile.id,
+          images: [
+            {
+              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/carpet-modern-grey.jpg",
+            },
+          ],
+          metadata: {
+            carpet_type: "roll",
+            available_widths: ["3m", "4m", "5m"],
+            width_prices: {
+              "3m": 38.00,
+              "4m": 48.00,
+              "5m": 58.00
+            },
+            price_per_running_meter: 48.00,
+            min_length: 1,
+            max_length: 50,
+            cutting_fee: 8.00,
+            preparation_time_days: 2,
+            material: "Synthetic blend",
+            pile_height: "6mm",
+            pattern: "Solid with texture"
+          },
+          variants: [
+            {
+              title: "Base Roll - Price per meter",
+              sku: "MODERN-GREY-ROLL",
+              prices: [
+                {
+                  amount: 48.00,
+                  currency_code: "usd",
+                },
+              ],
+              metadata: {
+                is_base_variant: true,
+                note: "Actual price calculated based on width and length"
+              }
             },
           ],
           sales_channels: [

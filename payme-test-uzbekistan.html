@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payme Payment Test - Uzbekistan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .test-info {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+            border-radius: 4px;
+        }
+
+        .test-info h3 {
+            color: #007bff;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .test-info p {
+            color: #333;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .payment-section {
+            margin: 30px 0;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .payment-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .amount-info {
+            background: #e3f2fd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .amount-info strong {
+            color: #1976d2;
+            font-size: 24px;
+        }
+
+        /* Enhanced Payme button styling */
+        .payme-form {
+            margin: 20px 0;
+        }
+
+        .payme-button {
+            cursor: pointer;
+            border: 1px solid #ebebeb;
+            border-radius: 6px;
+            background: linear-gradient(to top, #f1f2f2, white);
+            width: 200px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .payme-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            border-color: #00c896;
+        }
+
+        .payme-button:active {
+            transform: translateY(0);
+        }
+
+        .payme-button img {
+            width: 160px;
+            height: 20px;
+        }
+
+        .test-amounts {
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .test-amounts h4 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .test-amount {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: white;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .test-amount:hover {
+            background: #f5f5f5;
+        }
+
+        .instructions {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+            border-radius: 4px;
+        }
+
+        .instructions h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            color: #856404;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .test-amount {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Payme Payment Test</h1>
+        <div class="test-info">
+            <h3>📋 Test Information</h3>
+            <p><strong>Merchant ID:</strong> 68c46ba9acdb1e860a342a87</p>
+            <p><strong>Test Amount:</strong> 5,400,000 tiyin = 54,000 UZS</p>
+            <p><strong>Account ID:</strong> JUST = 3</p>
+            <p><strong>Date:</strong> <span id="current-date"></span></p>
+        </div>
+
+        <div class="payment-section">
+            <h3>💳 Payme Payment Test</h3>
+            
+            <div class="amount-info">
+                <p>Payment Amount:</p>
+                <strong>54,000 UZS</strong>
+                <p><small>(5,400,000 tiyin)</small></p>
+            </div>
+
+            <!-- Original Payme Form -->
+            <form method="POST" action="https://checkout.paycom.uz"> <input type="hidden" name="merchant" value="68e68972fcd578d21cfaf362"/> <input type="hidden" name="amount" value="59900"/> <input type="hidden" name="account[Bir_martalik_tolov]" value="u"/> <button type="submit" style="cursor: pointer; border: 1px solid #ebebeb; border-radius: 6px; background: linear-gradient(to top, #f1f2f2, white); width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; "> <img style="width: 42px; height: 42px; " src="http://cdn.payme.uz/buttons/buttonsmall_UZ.svg"> </button> </form>
+
+            <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                Click the button above to test Payme payment
+            </p>
+        </div>
+
+        <!-- Test Different Amounts -->
+        <div class="test-amounts">
+            <h4>🧪 Test Different Amounts:</h4>
+            
+            <div class="test-amount">
+                <span>10,000 UZS (1,000,000 tiyin)</span>
+                <form method="POST" action="https://checkout.paycom.uz" style="display: inline;">
+                    <input type="hidden" name="merchant" value="68c46ba9acdb1e860a342a87"/>
+                    <input type="hidden" name="amount" value="1000000"/>
+                    <input type="hidden" name="account[JUST]" value="1"/>
+                    <button type="submit" style="padding: 5px 10px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;">Test</button>
+                </form>
+            </div>
+
+            <div class="test-amount">
+                <span>25,000 UZS (2,500,000 tiyin)</span>
+                <form method="POST" action="https://checkout.paycom.uz" style="display: inline;">
+                    <input type="hidden" name="merchant" value="68c46ba9acdb1e860a342a87"/>
+                    <input type="hidden" name="amount" value="2500000"/>
+                    <input type="hidden" name="account[JUST]" value="2"/>
+                    <button type="submit" style="padding: 5px 10px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;">Test</button>
+                </form>
+            </div>
+
+            <div class="test-amount">
+                <span>100,000 UZS (10,000,000 tiyin)</span>
+                <form method="POST" action="https://checkout.paycom.uz" style="display: inline;">
+                    <input type="hidden" name="merchant" value="68c46ba9acdb1e860a342a87"/>
+                    <input type="hidden" name="amount" value="10000000"/>
+                    <input type="hidden" name="account[JUST]" value="4"/>
+                    <button type="submit" style="padding: 5px 10px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;">Test</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h4>📝 Testing Instructions:</h4>
+            <ul>
+                <li>Click any "Test" button above</li>
+                <li>You should be redirected to Payme checkout</li>
+                <li>If you see an error page, note the exact error message</li>
+                <li>Try using a test card number if available</li>
+                <li>Report back what happens at each step</li>
+            </ul>
+        </div>
+
+        <!-- Results Section -->
+        <div id="test-results" style="margin-top: 30px;">
+            <h4>📊 Test Results:</h4>
+            <p style="color: #666; font-style: italic;">
+                Please share screenshots or describe what happens when you click the buttons.
+            </p>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: left;">
+                <h5>Expected Outcomes:</h5>
+                <p><strong>✅ Success:</strong> Redirects to Payme payment page with card input</p>
+                <p><strong>❌ Error:</strong> Shows error message (please copy the exact text)</p>
+                <p><strong>🚫 Blocked:</strong> Page doesn't load or shows "Access Denied"</p>
+            </div>
+        </div>
+
+        <!-- Technical Info -->
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: left; font-size: 12px; color: #666;">
+            <h5>🔧 Technical Details:</h5>
+            <p><strong>Form Action:</strong> https://checkout.paycom.uz</p>
+            <p><strong>Method:</strong> POST</p>
+            <p><strong>Merchant:</strong> 68c46ba9acdb1e860a342a87</p>
+            <p><strong>Browser:</strong> <span id="browser-info"></span></p>
+            <p><strong>Location:</strong> <span id="location-info">Detecting...</span></p>
+        </div>
+    </div>
+
+    <script>
+        // Set current date
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        // Set browser info
+        document.getElementById('browser-info').textContent = navigator.userAgent;
+
+        // Try to detect location (this might not work depending on permissions)
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    document.getElementById('location-info').textContent = 
+                        `Lat: ${position.coords.latitude.toFixed(2)}, Lon: ${position.coords.longitude.toFixed(2)}`;
+                },
+                function(error) {
+                    document.getElementById('location-info').textContent = 'Location not available';
+                }
+            );
+        } else {
+            document.getElementById('location-info').textContent = 'Geolocation not supported';
+        }
+
+        // Add click tracking
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const amount = this.querySelector('input[name="amount"]').value;
+                const accountValue = this.querySelector('input[name="account[JUST]"]').value;
+                
+                console.log(`Testing payment: ${amount} tiyin, account: ${accountValue}`);
+                
+                // You could add analytics or reporting here
+                // For now, just log to console
+                
+                // Let the form submit normally
+                return true;
+            });
+        });
+
+        // Add a simple status reporter
+        window.addEventListener('load', function() {
+            console.log('Payme test page loaded successfully');
+            console.log('Merchant ID: 68c46ba9acdb1e860a342a87');
+            console.log('Ready for testing!');
+        });
+    </script>
+</body>
+</html>
