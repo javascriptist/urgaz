@@ -339,6 +339,17 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           return res.json(createError(id, ERRORS.INVALID_ACCOUNT))
         }
 
+        // Check if transaction already exists (idempotency check - MUST be first)
+        const existing = transactions.get(transactionId)
+        if (existing) {
+          console.log('✅ Returning existing transaction (idempotent):', transactionId)
+          if (existing.state === 2) {
+            return res.json(createError(id, ERRORS.ALREADY_PAID))
+          }
+          // Return existing transaction (same result as first call)
+          return res.json(createResponse(id, existing))
+        }
+
         // Validate order exists and amount matches
         const validation = await validateOrderAmount(req, orderId, amount)
         if (!validation.valid) {
@@ -352,13 +363,13 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           }
         }
 
-        // Check if this order already has a pending transaction
+        // Check if this order already has a DIFFERENT pending transaction
         const existingTransactionId = orderTransactions.get(orderId)
-        if (existingTransactionId) {
+        if (existingTransactionId && existingTransactionId !== transactionId) {
           const existingTx = transactions.get(existingTransactionId)
-          // If there's a pending transaction (state 1), reject new one
+          // If there's a pending transaction (state 1) with different ID, reject new one
           if (existingTx && existingTx.state === 1) {
-            console.log('❌ Order already has pending transaction:', orderId)
+            console.log('❌ Order already has different pending transaction:', { orderId, existing: existingTransactionId, new: transactionId })
             return res.json(createError(id, {
               code: -31099,
               message: {
@@ -368,16 +379,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
               }
             }))
           }
-        }
-
-        // Check if transaction already exists
-        const existing = transactions.get(transactionId)
-        if (existing) {
-          if (existing.state === 2) {
-            return res.json(createError(id, ERRORS.ALREADY_PAID))
-          }
-          // Return existing transaction
-          return res.json(createResponse(id, existing))
         }
 
         // Create new transaction
