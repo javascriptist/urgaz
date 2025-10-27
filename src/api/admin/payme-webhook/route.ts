@@ -98,15 +98,15 @@ function verifyAuth(req: MedusaRequest): boolean {
     return true
   }
   
-  // In test mode: If password doesn't match the configured one,
-  // check if it's a valid-looking test password (Payme uses different ones for sandbox)
-  if (isTestRequest && passwordPart && passwordPart.length >= 20) {
-    // Accept test passwords that look legitimate (long enough)
-    console.log('🔓 Test sandbox: Valid test password format - ACCEPTED')
-    return true
-  }
+  // REMOVED: Test mode lenient check that accepted any password >= 20 chars
+  // Payme sends intentionally wrong passwords (e.g., "Uzcard:someRandomString...")
+  // to test that we properly reject them with -32504
+  // We must validate exact password match even in test mode
   
-  console.log('🔒 Auth failed: Invalid password')
+  console.log('� Auth failed: Invalid password')
+  if (isTestRequest) {
+    console.log('🔒 Test sandbox: Wrong password - will return -32504')
+  }
   return false
 }
 
