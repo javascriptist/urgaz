@@ -93,15 +93,24 @@ function verifyAuth(req: MedusaRequest): boolean {
   // Check if this is a test request
   const isTestRequest = req.headers['test-operation'] === 'Paycom'
   
-  // For production: Check exact password match
-  const isProductionPassword = passwordPart === expectedPassword
+  // ALWAYS check exact password match first (especially important after ChangePassword)
+  const isPasswordMatch = passwordPart === expectedPassword
   
-  if (isProductionPassword) {
-    console.log('� Auth: Password matches - ACCEPTED')
+  if (isPasswordMatch) {
+    console.log('✅ Auth: Password matches - ACCEPTED')
     return true
   }
   
-  // In test mode: Accept Payme's legitimate test passwords
+  // If password was changed via ChangePassword, ONLY accept the new password
+  // Reject any other password, even in test mode
+  const hasCustomPassword = expectedPassword !== process.env.PAYME_PASSWORD
+  if (hasCustomPassword) {
+    console.log('🔒 Auth failed: Password was changed, only new password accepted')
+    return false
+  }
+  
+  // In test mode with default password: Accept Payme's legitimate test passwords
+  // This only applies when password hasn't been changed via ChangePassword
   // Reject obviously invalid ones (e.g., "Uzcard:...", "someRandomString...")
   if (isTestRequest && passwordPart && passwordPart.length >= 20) {
     // Reject if password contains colon (indicates malformed test like "Uzcard:...")
