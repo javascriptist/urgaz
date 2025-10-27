@@ -1,5 +1,4 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { markOrderPaidWorkflow } from "../../../../workflows/mark-order-paid"
 
 export const AUTHENTICATE = true
 
@@ -13,8 +12,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   try {
-    await markOrderPaidWorkflow(req.scope).run({
-      input: { order_id }
+    const orderModuleService = req.scope.resolve("orderModuleService") as any
+    
+    // Update order payment status
+    await orderModuleService.updateOrders({
+      id: order_id,
+      payment_status: "captured"
     })
 
     console.log("Nasiya order marked as paid:", order_id)
