@@ -7,20 +7,27 @@ export const AUTHENTICATE = true
 // POST /admin/pos/create-order
 // Create an in-store order
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
+  const body = req.body as {
+    items: Array<{ variant_id: string; quantity: number; unit_price: number }>
+    payment_method?: string
+    customer_name?: string
+    notes?: string
+  }
+  
   const { 
-    items, // [{ variant_id, quantity, unit_price }]
-    payment_method, // "cash", "card", "mixed", "nasiya"
+    items,
+    payment_method,
     customer_name,
     notes 
-  } = req.body
+  } = body
 
   const orderModuleService = req.scope.resolve<IOrderModuleService>(Modules.ORDER)
   const productModuleService = req.scope.resolve<IProductModuleService>(Modules.PRODUCT)
   const userModuleService = req.scope.resolve<IUserModuleService>(Modules.USER)
   const remoteLink = req.scope.resolve(ContainerRegistrationKeys.REMOTE_LINK)
 
-  // Get authenticated user info
-  const authUserId = req.auth_context?.actor_id || req.user?.id || req.session?.user_id || "unknown"
+  // Get authenticated user info - use type assertion for auth fields
+  const authUserId = (req as any).auth_context?.actor_id || (req as any).user?.id || (req as any).session?.user_id || "unknown"
   
   // Fetch user details from User module
   let userName = "Unknown"
@@ -85,11 +92,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const isNasiya = payment_method === "nasiya"
 
     // Create the order
-    const order = await orderModuleService.createOrders({
+    const orderResult = await orderModuleService.createOrders({
       currency_code: "usd",
       email: `pos-${Date.now()}@store.local`,
       items: orderItems,
-      sales_channel_id: null,
       metadata: {
         sale_type: "in-store",
         payment_method: payment_method || "cash",
@@ -105,7 +111,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         total: subtotal,
         subtotal: subtotal,
       }
-    })
+    } as any)
+    
+    const order = Array.isArray(orderResult) ? orderResult[0] : orderResult
 
     // Create payment collection and payment if not nasiya
     if (!isNasiya) {
