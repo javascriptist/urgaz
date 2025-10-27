@@ -78,9 +78,8 @@ const POSOrdersPage = () => {
   }, [])
 
   const formatPriceInUZS = (amountUSD: number) => {
-    // amountUSD is in cents, convert to dollars first
-    const dollars = amountUSD / 100
-    const uzs = dollars * exchangeRate
+    // amountUSD is already in dollars (e.g., 45 = $45.00)
+    const uzs = amountUSD * exchangeRate
     return Math.round(uzs).toLocaleString() + ' UZS'
   }
 

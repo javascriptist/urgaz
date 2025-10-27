@@ -168,31 +168,52 @@ function getExchangeRate(): number {
 }
 
 // Helper function to validate order amount
-async function validateOrderAmount(req: MedusaRequest, orderId: string, amount: number): Promise<{ valid: boolean; error?: 'NOT_FOUND' | 'AMOUNT_MISMATCH'; order?: any }> {
+async function validateOrderAmount(req: MedusaRequest, orderIdOrDisplayId: string, amount: number): Promise<{ valid: boolean; error?: 'NOT_FOUND' | 'AMOUNT_MISMATCH'; order?: any }> {
   try {
     const orderModuleService = req.scope.resolve(Modules.ORDER)
     
-    // Find order by ID
-    const orders = await orderModuleService.listOrders({ id: orderId })
+    // Try to find order by display_id first (if it's a number), then by full ID
+    let order: any = null
+    const displayId = parseInt(orderIdOrDisplayId)
     
-    if (!orders || orders.length === 0) {
-      console.log('❌ Order not found:', orderId)
+    if (!isNaN(displayId)) {
+      // It's a number, search by display_id
+      console.log('🔍 Looking for order by display_id:', displayId)
+      // Since display_id is not in FilterableOrderProps, we need to fetch and filter manually
+      const allOrders = await orderModuleService.listOrders({}, { 
+        select: ["id", "display_id", "total"]
+      })
+      order = allOrders.find((o: any) => o.display_id === displayId) || null
+    } else {
+      // It's a string, search by full order ID
+      console.log('🔍 Looking for order by ID:', orderIdOrDisplayId)
+      const orders = await orderModuleService.listOrders({ id: orderIdOrDisplayId })
+      order = orders && orders.length > 0 ? orders[0] : null
+    }
+    
+    if (!order) {
+      console.log('❌ Order not found:', orderIdOrDisplayId)
       return { valid: false, error: 'NOT_FOUND' }
     }
     
-    const order = orders[0]
+    console.log('✅ Order found:', {
+      id: order.id,
+      display_id: order.display_id,
+      total: order.total
+    })
     
     // Get exchange rate (USD to UZS)
     const exchangeRate = getExchangeRate()
     
-    // Order total is in USD (stored as cents: $10.00 = 1000)
-    // Convert: USD cents → USD → UZS → Tiyin
-    const orderTotalUSD = Number(order.total) / 100 || 0 // Convert cents to dollars
-    const orderTotalUZS = orderTotalUSD * exchangeRate    // Convert USD to UZS
+    // Order total is already in USD dollars (e.g., total: 45 = $45.00)
+    // Convert: USD → UZS → Tiyin
+    const orderTotalUSD = Number(order.total) || 0      // Already in dollars
+    const orderTotalUZS = orderTotalUSD * exchangeRate  // Convert USD to UZS
     const orderTotalInTiyin = Math.round(orderTotalUZS * 100) // Convert UZS to Tiyin
     
     console.log('💰 Amount validation:', {
-      orderId,
+      orderId: orderIdOrDisplayId,
+      display_id: order.display_id,
       orderTotalUSD: orderTotalUSD.toFixed(2) + ' USD',
       exchangeRate: exchangeRate + ' UZS/USD',
       orderTotalUZS: orderTotalUZS.toFixed(2) + ' UZS',
