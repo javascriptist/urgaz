@@ -1,4 +1,7 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { Modules } from "@medusajs/framework/utils"
+import * as fs from "fs"
+import * as path from "path"
 
 // Disable ALL Medusa authentication - no publishable key required
 export const AUTHENTICATE = false
@@ -6,20 +9,40 @@ export const config = {
   auth: false
 }
 
+// Helper function to get exchange rate
+function getExchangeRate(): number {
+  try {
+    const STORAGE_PATH = path.join(process.cwd(), "data", "exchange-rate.json")
+    if (fs.existsSync(STORAGE_PATH)) {
+      const data = fs.readFileSync(STORAGE_PATH, "utf-8")
+      const parsed = JSON.parse(data)
+      return parsed.rate || 12750
+    }
+  } catch (e) {
+    console.error('Error reading exchange rate:', e)
+  }
+  return 12750 // Default: 1 USD = 12,750 UZS
+}
+
 /**
- * POST /store/payme-merchant/generate-link
- * Generate a Payme Merchant API payment link
+ * POST /admin/payme-generate-link
+ * Generate a Payme Merchant API payment link (Admin endpoint)
  * 
- * Body: { orderId: string, amount: number, callbackUrl?: string }
+ * Body: { 
+ *   orderId: string,        // Order ID or display_id
+ *   callbackUrl?: string    // Optional return URL
+ * }
  * Returns: { paymentUrl: string }
+ * 
+ * Note: Amount is calculated automatically from the order total and exchange rate
  */
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const { orderId, amount, callbackUrl } = req.body as any
+  const { orderId, callbackUrl } = req.body as any
 
-  if (!orderId || !amount) {
+  if (!orderId) {
     return res.status(400).json({
       success: false,
-      error: "orderId and amount are required"
+      error: "orderId is required"
     })
   }
 
@@ -31,35 +54,100 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     })
   }
 
-  // Convert UZS to Tiyin (1 UZS = 100 Tiyin)
-  const amountInTiyin = Math.round(amount * 100)
+  try {
+    // Fetch the order from database
+    const orderModuleService = req.scope.resolve(Modules.ORDER)
+    
+    // Try to find order by display_id first (if it's a number), then by full ID
+    let order: any = null
+    const displayId = parseInt(orderId)
+    
+    if (!isNaN(displayId)) {
+      // It's a number, search by display_id
+      const allOrders = await orderModuleService.listOrders({}, { 
+        select: ["id", "display_id", "total", "currency_code"]
+      })
+      order = allOrders.find((o: any) => o.display_id === displayId) || null
+    } else {
+      // It's a string, search by full order ID
+      const orders = await orderModuleService.listOrders({ id: orderId })
+      order = orders && orders.length > 0 ? orders[0] : null
+    }
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: "Order not found",
+        orderId
+      })
+    }
 
-  // Generate Payme payment URL for Merchant API (Production)
-  // Format: https://checkout.paycom.uz/[merchant_id]?amount=AMOUNT&account[order_id]=ORDER_ID&callback=CALLBACK
-  // OR alternate format: https://checkout.paycom.uz/?m=MERCHANT_ID&ac.order_id=ORDER_ID&a=AMOUNT&c=CALLBACK_URL
-  
-  const baseUrl = 'https://checkout.paycom.uz'
-  
-  // Try the alternate URL format that's more commonly used
-  const paymentUrl = `${baseUrl}/${merchantId}?` + 
-    `amount=${amountInTiyin}` +
-    `&account[order_id]=${encodeURIComponent(orderId)}` +
-    (callbackUrl ? `&callback=${encodeURIComponent(callbackUrl)}` : '')
+    // Get exchange rate
+    const exchangeRate = getExchangeRate()
 
-  console.log('🔗 Generated Payme payment link:', {
-    orderId,
-    amountUZS: amount,
-    amountTiyin: amountInTiyin,
-    merchantId,
-    paymentUrl,
-    mode: 'PRODUCTION'
-  })
+    // Convert: USD → UZS → Tiyin
+    const orderTotalUSD = Number(order.total) || 0
+    const orderTotalUZS = orderTotalUSD * exchangeRate
+    const amountInTiyin = Math.round(orderTotalUZS * 100)
 
-  return res.json({
-    success: true,
-    paymentUrl,
-    orderId,
-    amount: amountInTiyin,
-    merchantId
-  })
+    // Build payment parameters
+    const params: any = {
+      m: merchantId,              // merchant_id
+      a: amountInTiyin,           // amount in tiyin
+      ac: {
+        order_id: orderId         // account.order_id (can be display_id)
+      }
+    }
+
+    if (callbackUrl) {
+      params.c = callbackUrl      // callback URL
+    }
+
+    // Method 1: Base64 encoded (RECOMMENDED - most reliable)
+    const paramsString = JSON.stringify(params)
+    const base64Params = Buffer.from(paramsString).toString('base64')
+    const paymentUrlBase64 = `https://checkout.paycom.uz/${base64Params}`
+
+    // Method 2: Query string (simpler, alternative)
+    const paymentUrlQuery = `https://checkout.paycom.uz/?` +
+      `m=${merchantId}` +
+      `&a=${amountInTiyin}` +
+      `&ac.order_id=${encodeURIComponent(orderId)}` +
+      (callbackUrl ? `&c=${encodeURIComponent(callbackUrl)}` : '')
+
+    // Use base64 method (more reliable)
+    const paymentUrl = paymentUrlBase64
+
+    console.log('🔗 Generated Payme payment link (Admin):', {
+      orderId,
+      display_id: order.display_id,
+      orderTotalUSD: orderTotalUSD.toFixed(2) + ' USD',
+      exchangeRate: exchangeRate + ' UZS/USD',
+      orderTotalUZS: orderTotalUZS.toFixed(2) + ' UZS',
+      amountTiyin: amountInTiyin + ' tiyin',
+      merchantId,
+      method: 'base64',
+      paymentUrl
+    })
+
+    return res.json({
+      success: true,
+      paymentUrl,
+      paymentUrlAlternative: paymentUrlQuery,
+      orderId,
+      orderDisplayId: order.display_id,
+      amount: amountInTiyin,
+      amountUSD: orderTotalUSD,
+      amountUZS: orderTotalUZS,
+      exchangeRate,
+      merchantId
+    })
+  } catch (error: any) {
+    console.error('❌ Error generating Payme link:', error)
+    return res.status(500).json({
+      success: false,
+      error: "Failed to generate payment link",
+      message: error.message
+    })
+  }
 }
