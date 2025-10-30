@@ -106,14 +106,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const amountInTiyin = Math.round(orderTotalUZS * 100)
 
     // Use display_id for Payme (easier to work with than long UUID)
-    const paymeOrderId = String(order.display_id)
+    const paymeOrderId = order.display_id
 
     // Build payment parameters
     const params: any = {
       m: merchantId,              // merchant_id
       a: amountInTiyin,           // amount in tiyin
-      ac: {
-        order_id: paymeOrderId    // Use display_id (e.g., "11" instead of "order_01K8...")
+      account: {
+        order_id: paymeOrderId    // Use display_id as number (e.g., 12 instead of "order_01K8...")
       }
     }
 
@@ -130,7 +130,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const paymentUrlQuery = `https://checkout.paycom.uz/?` +
       `m=${merchantId}` +
       `&a=${amountInTiyin}` +
-      `&ac.order_id=${encodeURIComponent(paymeOrderId)}` +
+      `&account.order_id=${paymeOrderId}` +
       (callbackUrl ? `&c=${encodeURIComponent(callbackUrl)}` : '')
 
     // Use base64 method (more reliable)
