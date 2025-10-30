@@ -209,8 +209,9 @@ async function validateOrderAmount(req: MedusaRequest, orderIdOrDisplayId: strin
     console.log('✅ Order found:', {
       id: order.id,
       display_id: order.display_id,
-      total: order.total || order.summary.accounting_total
+      total: order.total || order.summary?.accounting_total
     })
+    console.log(order)
     
     // Get exchange rate (USD to UZS)
     const exchangeRate = getExchangeRate();
