@@ -209,11 +209,11 @@ async function validateOrderAmount(req: MedusaRequest, orderIdOrDisplayId: strin
     console.log('✅ Order found:', {
       id: order.id,
       display_id: order.display_id,
-      total: order.total
+      total: order.total || order.summary.accounting_total
     })
     
     // Get exchange rate (USD to UZS)
-    const exchangeRate = getExchangeRate()
+    const exchangeRate = getExchangeRate();
     
     // Order total is already in USD dollars (e.g., total: 45 = $45.00)
     // Convert: USD → UZS → Tiyin
