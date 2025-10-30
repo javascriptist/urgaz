@@ -65,12 +65,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     if (!isNaN(displayId)) {
       // It's a number, search by display_id
       const allOrders = await orderModuleService.listOrders({}, { 
-        select: ["id", "display_id", "total", "currency_code"]
+        select: ["id", "display_id", "total", "currency_code", "summary"],
+        relations: ["summary"]
       })
       order = allOrders.find((o: any) => o.display_id === displayId) || null
     } else {
       // It's a string, search by full order ID
-      const orders = await orderModuleService.listOrders({ id: orderId })
+      const orders = await orderModuleService.listOrders({ id: orderId }, {
+        select: ["id", "display_id", "total", "currency_code", "summary"],
+        relations: ["summary"]
+      })
       order = orders && orders.length > 0 ? orders[0] : null
     }
     
@@ -86,7 +90,18 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const exchangeRate = getExchangeRate()
 
     // Convert: USD → UZS → Tiyin
-    const orderTotalUSD = Number(order.total) || 0
+    // Try order.total first, then order.summary.total
+    const orderTotalUSD = Number(order.total) || Number(order.summary?.total) || 0
+    
+    if (orderTotalUSD === 0) {
+      console.warn('⚠️ Order has zero total:', {
+        orderId,
+        display_id: order.display_id,
+        total: order.total,
+        summary: order.summary
+      })
+    }
+    
     const orderTotalUZS = orderTotalUSD * exchangeRate
     const amountInTiyin = Math.round(orderTotalUZS * 100)
 
