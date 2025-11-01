@@ -191,13 +191,17 @@ async function validateOrderAmount(req: MedusaRequest, orderIdOrDisplayId: strin
       console.log('🔍 Looking for order by display_id:', displayId)
       // Since display_id is not in FilterableOrderProps, we need to fetch and filter manually
       const allOrders = await orderModuleService.listOrders({}, { 
-        select: ["id", "display_id", "total"]
+        select: ["id", "display_id", "total", "currency_code", "summary"],
+        relations: ["summary"]
       })
       order = allOrders.find((o: any) => o.display_id === displayId) || null
     } else {
       // It's a string, search by full order ID
       console.log('🔍 Looking for order by ID:', orderIdOrDisplayId)
-      const orders = await orderModuleService.listOrders({ id: orderIdOrDisplayId })
+      const orders = await orderModuleService.listOrders({ id: orderIdOrDisplayId }, {
+        select: ["id", "display_id", "total", "currency_code", "summary"],
+        relations: ["summary"]
+      })
       order = orders && orders.length > 0 ? orders[0] : null
     }
     
@@ -209,16 +213,17 @@ async function validateOrderAmount(req: MedusaRequest, orderIdOrDisplayId: strin
     console.log('✅ Order found:', {
       id: order.id,
       display_id: order.display_id,
-      total: order.total || order.summary?.accounting_total
+      total: order.total,
+      summary_total: order.summary?.total
     })
-    console.log(order)
     
     // Get exchange rate (USD to UZS)
     const exchangeRate = getExchangeRate();
     
     // Order total is already in USD dollars (e.g., total: 45 = $45.00)
+    // Try order.total first, then order.summary.total as fallback
     // Convert: USD → UZS → Tiyin
-    const orderTotalUSD = Number(order.total) || 0      // Already in dollars
+    const orderTotalUSD = Number(order.total) || Number(order.summary?.total) || 0
     const orderTotalUZS = orderTotalUSD * exchangeRate  // Convert USD to UZS
     const orderTotalInTiyin = Math.round(orderTotalUZS * 100) // Convert UZS to Tiyin
     
