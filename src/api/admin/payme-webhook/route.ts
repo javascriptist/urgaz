@@ -446,7 +446,70 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
         console.log('✅ Transaction performed:', transaction)
 
-        // TODO: Mark order as paid in your system
+        // Mark order as paid in your system
+        try {
+          // Extract order_id from the transaction
+          // We need to find which order this transaction belongs to
+          let orderId: string | null = null
+          for (const [orderKey, txId] of orderTransactions.entries()) {
+            if (txId === transactionId) {
+              orderId = orderKey
+              break
+            }
+          }
+
+          if (orderId) {
+            console.log('💳 Marking order as paid:', orderId)
+            
+            // Get order module to update the order
+            const orderModuleService = req.scope.resolve(Modules.ORDER)
+            
+            // Find the order (by display_id or UUID)
+            let order: any = null
+            const displayId = parseInt(orderId)
+            
+            if (!isNaN(displayId)) {
+              const allOrders = await orderModuleService.listOrders({}, { 
+                select: ["id", "display_id", "metadata"]
+              })
+              order = allOrders.find((o: any) => o.display_id === displayId) || null
+            } else {
+              const orders = await orderModuleService.listOrders({ id: orderId }, {
+                select: ["id", "display_id", "metadata"]
+              })
+              order = orders && orders.length > 0 ? orders[0] : null
+            }
+
+            if (order) {
+              // Update order metadata and payment status
+              await orderModuleService.updateOrders(order.id, {
+                metadata: {
+                  ...(order.metadata || {}),
+                  payme_transaction_id: transactionId,
+                  payme_paid_at: new Date().toISOString(),
+                  payment_method: 'payme',
+                  payment_captured: true,
+                  payment_status_override: 'paid'
+                }
+              })
+              
+              console.log('✅ Order marked as paid:', {
+                orderId: order.id,
+                display_id: order.display_id,
+                transaction: transactionId,
+                payment_method: 'payme',
+                paid_at: new Date().toISOString()
+              })
+            } else {
+              console.warn('⚠️ Could not find order to mark as paid:', orderId)
+            }
+          } else {
+            console.warn('⚠️ Could not find order for transaction:', transactionId)
+          }
+        } catch (error) {
+          console.error('❌ Error marking order as paid:', error)
+          // Don't fail the transaction if marking order fails
+        }
 
         return res.json(createResponse(id, transaction))
       }
