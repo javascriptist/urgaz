@@ -11,11 +11,32 @@ const ProductPOSSellWidget = () => {
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [selectedVariantId, setSelectedVariantId] = useState<string>("")
+  const [stockLocations, setStockLocations] = useState<any[]>([])
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("")
 
   // Get product ID from URL
   const productId = window.location.pathname.split("/products/")[1]
 
   const [productData, setProductData] = useState<any>(null)
+
+  // Fetch stock locations
+  const fetchLocations = async () => {
+    try {
+      const response = await fetch(`/admin/stock-locations`, {
+        credentials: "include",
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setStockLocations(data.stock_locations || [])
+        // Set default location to first one
+        if (data.stock_locations?.length > 0) {
+          setSelectedLocationId(data.stock_locations[0].id)
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching locations:", error)
+    }
+  }
 
   // Fetch product data
   const fetchProduct = async () => {
@@ -39,6 +60,7 @@ const ProductPOSSellWidget = () => {
   // Fetch on mount
   if (!productData && productId) {
     fetchProduct()
+    fetchLocations()
   }
 
   const handleSubmit = async () => {
@@ -74,6 +96,7 @@ const ProductPOSSellWidget = () => {
           payment_method: paymentMethod,
           customer_name: customerName || "Walk-in Customer",
           notes: notes,
+          location_id: selectedLocationId,
         }),
       })
 
@@ -123,6 +146,24 @@ const ProductPOSSellWidget = () => {
           <div className="text-sm text-ui-fg-subtle mb-4">
             Record an in-store sale for this product
           </div>
+
+          {stockLocations.length > 1 && (
+            <div>
+              <Label htmlFor="location">Stock Location</Label>
+              <select
+                id="location"
+                value={selectedLocationId}
+                onChange={(e) => setSelectedLocationId(e.target.value)}
+                className="w-full px-3 py-2 border border-ui-border-base rounded-md bg-ui-bg-base text-ui-fg-base"
+              >
+                {stockLocations.map((location: any) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {productData.variants && productData.variants.length > 1 && (
             <div>
@@ -225,7 +266,7 @@ const ProductPOSSellWidget = () => {
 }
 
 export const config = defineWidgetConfig({
-  zone: "product.details.after",
+  zone: "product.details.side.before",
 })
 
 export default ProductPOSSellWidget

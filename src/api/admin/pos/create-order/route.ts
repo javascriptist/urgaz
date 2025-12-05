@@ -12,13 +12,15 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     payment_method?: string
     customer_name?: string
     notes?: string
+    location_id?: string
   }
   
   const { 
     items,
     payment_method,
     customer_name,
-    notes 
+    notes,
+    location_id 
   } = body
 
   const orderModuleService = req.scope.resolve<IOrderModuleService>(Modules.ORDER)
@@ -115,6 +117,64 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     
     const order = Array.isArray(orderResult) ? orderResult[0] : orderResult
 
+    // Decrement inventory for all items (sold in-store, payment already taken)
+    try {
+      const inventoryModule = req.scope.resolve(Modules.INVENTORY)
+      const query = req.scope.resolve("query")
+      const stockLocationModule = req.scope.resolve(Modules.STOCK_LOCATION)
+      
+      // Get the specified or default stock location
+      let stockLocation
+      if (location_id) {
+        const locations = await stockLocationModule.listStockLocations({ id: location_id })
+        stockLocation = locations[0]
+        if (!stockLocation) {
+          throw new Error(`Stock location ${location_id} not found`)
+        }
+      } else {
+        const stockLocations = await stockLocationModule.listStockLocations({})
+        stockLocation = stockLocations[0]
+        if (!stockLocation) {
+          throw new Error("No stock location found")
+        }
+      }
+      
+      if (stockLocation) {
+        console.log(`Using stock location: ${stockLocation.name} (${stockLocation.id})`)
+        for (const item of items) {
+          // Get inventory item for this variant
+          const { data: variantData } = await query.graph({
+            entity: "variants",
+            fields: [
+              "id",
+              "inventory_items.inventory_item_id",
+            ],
+            filters: { id: item.variant_id },
+          })
+          
+          const variant = variantData?.[0]
+          if (variant?.inventory_items?.[0]?.inventory_item_id) {
+            const inventoryItemId = variant.inventory_items[0].inventory_item_id
+            
+            // Create inventory adjustment (negative to decrease stock)
+            await inventoryModule.adjustInventory(
+              inventoryItemId,
+              stockLocation.id,
+              -item.quantity
+            )
+            
+            console.log(`✓ Decremented inventory: ${inventoryItemId} by ${item.quantity} at location ${stockLocation.name}`)
+          } else {
+            console.warn(`⚠️ No inventory item found for variant ${item.variant_id}`)
+          }
+        }
+      }
+    } catch (inventoryError) {
+      console.error("Error updating inventory:", inventoryError)
+      console.error("Stack:", inventoryError.stack)
+      // Don't fail the order, just log the error
+    }
+
     // Create payment collection and payment if not nasiya
     if (!isNasiya) {
       try {
@@ -125,6 +185,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           currency_code: "usd",
           amount: subtotal,
         })
+        
+        console.log("✓ Payment collection created:", paymentCollection.id)
 
         // Link payment collection to order
         await remoteLink.create({
@@ -135,32 +197,55 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
             payment_collection_id: paymentCollection.id,
           },
         })
+        
+        console.log("✓ Payment collection linked to order")
 
         // Create a payment session with manual provider
         const paymentSession = await paymentModule.createPaymentSession(paymentCollection.id, {
-          provider_id: "pp_system_default", // Use system default provider
+          provider_id: "pp_system_default",
           currency_code: "usd",
           amount: subtotal,
           data: {
-            payment_method: payment_method,
+            payment_method: payment_method || "cash",
           },
         })
+        
+        console.log("✓ Payment session created:", paymentSession.id)
 
         // Authorize the payment
-        await paymentModule.authorizePaymentSession(paymentSession.id, {})
+        const authorizedSession = await paymentModule.authorizePaymentSession(paymentSession.id, {})
+        console.log("✓ Payment authorized:", authorizedSession.id)
         
-        // Capture the payment using the payment object
-        if (paymentSession.payment) {
+        // Capture the payment using the authorized session
+        if (authorizedSession?.id) {
           await paymentModule.capturePayment({
-            payment_id: paymentSession.payment.id,
+            payment_id: authorizedSession.id,
           })
-          console.log("Payment captured for order:", order.id)
+          console.log("✓ Payment captured for order:", order.id, "Amount:", subtotal, "USD")
+        } else {
+          console.warn("⚠️ Could not capture payment - no authorized session ID")
         }
       } catch (paymentError) {
-        console.error("Error creating/capturing payment:", paymentError)
-        console.error("Payment error details:", JSON.stringify(paymentError, null, 2))
+        console.error("❌ Error creating/capturing payment:", paymentError)
+        console.error("Payment error stack:", paymentError.stack)
         // Continue - order is created
       }
+    }
+
+    // Mark order as fulfilled in metadata (skip complex fulfillment module)
+    try {
+      await orderModuleService.updateOrders(order.id, {
+        metadata: {
+          ...order.metadata,
+          fulfilled_at: new Date().toISOString(),
+          fulfillment_type: "in-store-pickup",
+        },
+      })
+      
+      console.log("✓ Order marked as fulfilled:", order.id)
+    } catch (fulfillmentError) {
+      console.error("Error marking fulfillment:", fulfillmentError)
+      // Continue - order and payment are created
     }
 
     console.log("In-store order created:", order.id, "by:", userName, `(${userEmail})`, "Payment:", isNasiya ? "Nasiya (unpaid)" : "Paid")

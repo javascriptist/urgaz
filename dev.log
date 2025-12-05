@@ -1,0 +1,308 @@
+
+> urgaztest@0.0.1 dev
+> medusa develop
+
+[32minfo[39m:    Watching filesystem to reload dev server on file change
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+[32minfo[39m:    dev.log modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+Error: listen EADDRINUSE: address already in use :::9000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at internalStart (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:208:15)
+    at async start (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:290:5) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 9000
+}
+[32minfo[39m:    scripts/generate-payme-link.js modified: Restarting dev server
+[32minfo[39m:    Gracefully shutting down server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+✔ Server is ready on port: 9000 – 39ms
+[32minfo[39m:    Admin URL → http://localhost:9000/app
+[32minfo[39m:    scripts/generate-payme-link.js modified: Restarting dev server
+[32minfo[39m:    Gracefully shutting down server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+✔ Server is ready on port: 9000 – 6ms
+[32minfo[39m:    Admin URL → http://localhost:9000/app
+[32minfo[39m:    src/jobs/README.md modified: Restarting dev server
+[32minfo[39m:    Gracefully shutting down server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+✔ Server is ready on port: 9000 – 26ms
+[32minfo[39m:    Admin URL → http://localhost:9000/app
+[32minfo[39m:    src/workflows/README.md modified: Restarting dev server
+[32minfo[39m:    Gracefully shutting down server
+[32minfo[39m:    src/lib/payme.ts modified: Restarting dev server
+[32minfo[39m:    integration-tests/http/README.md modified: Restarting dev server
+[32minfo[39m:    src/workflows/mark-order-paid.ts modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    src/modules/README.md modified: Restarting dev server
+[32minfo[39m:    integration-tests/http/health.spec.ts modified: Restarting dev server
+[32minfo[39m:    src/migrations/20251001-AddProductMetadataGinIndex.ts modified: Restarting dev server
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    src/api/README.md modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+Error: listen EADDRINUSE: address already in use :::9000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at internalStart (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:208:15)
+    at async start (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:290:5) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 9000
+}
+[32minfo[39m:    src/lib/cod.ts modified: Restarting dev server
+- Creating server
+Error: listen EADDRINUSE: address already in use :::9000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at internalStart (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:208:15)
+    at async start (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:290:5) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 9000
+}
+[32minfo[39m:    src/workflows/index.ts modified: Restarting dev server
+[32minfo[39m:    src/subscribers/README.md modified: Restarting dev server
+[32minfo[39m:    src/links/README.md modified: Restarting dev server
+[32minfo[39m:    frontend-examples/vanilla-js/PaymeService.js modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    frontend-examples/react-nextjs/README.md modified: Restarting dev server
+[32minfo[39m:    src/scripts/README.md modified: Restarting dev server
+[32minfo[39m:    frontend-examples/vanilla-js/index.html modified: Restarting dev server
+[32minfo[39m:    src/scripts/seed.ts modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+Error: listen EADDRINUSE: address already in use :::9000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at internalStart (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:208:15)
+    at async start (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:290:5) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 9000
+}
+- Creating server
+Error: listen EADDRINUSE: address already in use :::9000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at internalStart (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:208:15)
+    at async start (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:290:5) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 9000
+}
+[32minfo[39m:    frontend-examples/react-nextjs/hooks/usePayme.ts modified: Restarting dev server
+[32minfo[39m:    Gracefully shutting down server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+Error: listen EADDRINUSE: address already in use :::9000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at internalStart (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:208:15)
+    at async start (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:290:5) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 9000
+}
+[32minfo[39m:    src/api/admin/payme-generate-link/route.ts modified: Restarting dev server
+[32minfo[39m:    Gracefully shutting down server
+[32minfo[39m:    src/api/admin/payme-webhook/route.ts modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+Error: listen EADDRINUSE: address already in use :::9000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at internalStart (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:208:15)
+    at async start (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:290:5) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 9000
+}
+[32minfo[39m:    src/api/store/custom/payme-callback.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/carpet-calculator/route.ts modified: Restarting dev server
+[32minfo[39m:    Gracefully shutting down server
+[32minfo[39m:    src/api/admin/payme-test/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/admin/custom/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/custom/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/payme-mock/route.ts modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    src/api/admin/exchange-rate/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/payme-merchant/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/exchange-rate/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/cod/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/admin/cod/route.ts modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+Error: listen EADDRINUSE: address already in use :::9000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at internalStart (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:208:15)
+    at async start (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:290:5) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 9000
+}
+[32minfo[39m:    src/api/store/payme/debug-auth/route.ts modified: Restarting dev server
+[32minfo[39m:    Gracefully shutting down server
+[32minfo[39m:    src/api/admin/pos/capture-payment/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/payme/create-receipt/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/payme-merchant/test/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/admin/products/by-attributes/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/payme-merchant/transactions/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/payme/check-receipt-mock/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/admin/pos/orders/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/payme/check-receipt/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/admin/pos/mark-paid/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/cart/custom-carpet/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/payme/check-receipts/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/admin/pos/create-order/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/admin/products/attributes/route.ts modified: Restarting dev server
+[32minfo[39m:    src/api/store/payme-merchant/generate-link/route.ts modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+Error: listen EADDRINUSE: address already in use :::9000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at internalStart (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:208:15)
+    at async start (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:290:5) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 9000
+}
+[32minfo[39m:    src/subscribers/auto-inventory.ts created: Restarting dev server
+[32minfo[39m:    Gracefully shutting down server
+[32minfo[39m:    src/subscribers/auto-inventory.ts modified: Restarting dev server
+[32minfo[39m:    src/subscribers/auto-inventory.ts modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+✔ Server is ready on port: 9000 – 64ms
+[32minfo[39m:    Admin URL → http://localhost:9000/app
+[32minfo[39m:    src/api/admin/pos/create-order/route.ts modified: Restarting dev server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+Error: listen EADDRINUSE: address already in use :::9000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at internalStart (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:208:15)
+    at async start (/Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/src/commands/start.ts:290:5) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 9000
+}
+[32minfo[39m:    src/api/admin/pos/create-order/route.ts modified: Restarting dev server
+[32minfo[39m:    Gracefully shutting down server
+[32minfo[39m:    Skipping instrumentation registration. No register function found.
+redisUrl not found. A fake redis instance will be used.
+[33mwarn[39m:    Local Event Bus installed. This is not recommended for production.
+[32minfo[39m:    Locking module: Using "in-memory" as default.
+[32minfo[39m:    No job to load from /Users/test/Desktop/medusatest/urgaztest/node_modules/@medusajs/medusa/dist/jobs. skipped.
+- Creating server
+✔ Server is ready on port: 9000 – 28ms
+[32minfo[39m:    Admin URL → http://localhost:9000/app
