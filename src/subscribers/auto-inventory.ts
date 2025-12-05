@@ -44,7 +44,11 @@ export default async function productCreatedHandler({
     const stockLocation = stockLocations[0]
 
     // Create inventory levels for each variant
-    const inventoryLevelsToCreate = []
+    const inventoryLevelsToCreate: Array<{
+      inventory_item_id: string
+      location_id: string
+      stocked_quantity: number
+    }> = []
 
     for (const variant of product.variants) {
       // Check if variant already has inventory items
@@ -53,8 +57,8 @@ export default async function productCreatedHandler({
         continue
       }
 
-      const inventoryItem = variant.inventory_items[0]?.inventory
-      if (!inventoryItem) {
+      const inventoryItemId = variant.inventory_items[0]?.inventory_item_id
+      if (!inventoryItemId) {
         console.log(`⚠️ Auto-inventory: No inventory item found for variant ${variant.id}`)
         continue
       }
@@ -62,7 +66,7 @@ export default async function productCreatedHandler({
       // Check if inventory level already exists
       const inventoryModule = container.resolve(Modules.INVENTORY)
       const existingLevels = await inventoryModule.listInventoryLevels({
-        inventory_item_id: inventoryItem.id,
+        inventory_item_id: inventoryItemId,
         location_id: stockLocation.id,
       })
 
@@ -73,9 +77,9 @@ export default async function productCreatedHandler({
 
       // Add to batch creation
       inventoryLevelsToCreate.push({
-        inventory_item_id: inventoryItem.id,
+        inventory_item_id: inventoryItemId,
         location_id: stockLocation.id,
-        stocked_quantity: 3,
+        stocked_quantity: 0,
       })
     }
 
@@ -91,7 +95,7 @@ export default async function productCreatedHandler({
       },
     })
 
-    console.log(`✅ Auto-inventory: Set stock to 3 for ${inventoryLevelsToCreate.length} variant(s) in product "${product.title}"`)
+    console.log(`✅ Auto-inventory: Created inventory levels (stock: 0) for ${inventoryLevelsToCreate.length} variant(s) in product "${product.title}"`)
   } catch (error) {
     console.error(`❌ Auto-inventory: Error setting up inventory for product ${productId}:`, error)
   }
