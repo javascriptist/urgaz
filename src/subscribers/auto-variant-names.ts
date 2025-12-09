@@ -69,11 +69,10 @@ export default async function productVariantCreatedHandler({
     }
 
     // Update variant with new title and SKU
-    await productModule.updateProductVariants([{
-      id: variantId,
+    await productModule.updateProductVariants(variantId, {
       title: variantTitle,
       sku: variant.sku || variantSKU, // Only set SKU if it doesn't exist
-    }])
+    })
 
     console.log(`✅ Auto-naming: Updated variant ${variantId}:`)
     console.log(`   Title: "${variantTitle}"`)
