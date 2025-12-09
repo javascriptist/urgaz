@@ -152,28 +152,28 @@ const POSSellModal = ({ product, onClose }: POSSellModalProps) => {
   )
 }
 
-const POSSellButtonWidget = () => {
-  const [showModal, setShowModal] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState<any>(null)
+// const POSSellButtonWidget = () => {
+//   const [showModal, setShowModal] = useState(false)
+//   const [selectedProduct, setSelectedProduct] = useState<any>(null)
 
-  // This is a placeholder - in reality, you'd need to pass product data
-  // For now, we'll create a link to POS orders page
-  return (
-    <div className="mb-4">
-      <Button
-        variant="secondary"
-        onClick={() => window.location.href = "/app/pos-orders"}
-        className="flex items-center gap-2"
-      >
-        <BuildingStorefront />
-        View In-Store Sales
-      </Button>
-    </div>
-  )
-}
+//   // This is a placeholder - in reality, you'd need to pass product data
+//   // For now, we'll create a link to POS orders page
+//   return (
+//     <div className="mb-4">
+//       <Button
+//         variant="secondary"
+//         onClick={() => window.location.href = "/app/pos-orders"}
+//         className="flex items-center gap-2"
+//       >
+//         <BuildingStorefront />
+//         View In-Store Sales
+//       </Button>
+//     </div>
+//   )
+// }
 
 export const config = defineWidgetConfig({
   zone: "product.list.before",
 })
 
-export default POSSellButtonWidget
+// export default POSSellButtonWidget

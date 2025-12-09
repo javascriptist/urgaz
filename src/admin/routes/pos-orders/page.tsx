@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Container, Heading, Table, Badge, Button } from "@medusajs/ui"
+import { Container, Heading, Table, Badge, Button, Tabs } from "@medusajs/ui"
 import { useNavigate } from "react-router-dom"
 import { ArrowUturnLeft } from "@medusajs/icons"
 
@@ -107,17 +107,19 @@ const POSOrdersPage = () => {
 
   return (
     <>
-      <div className="flex justify-end mb-4 px-6">
-        <Button 
-          variant="secondary" 
-          onClick={() => navigate("/orders")}
-          size="small"
-        >
-          <ArrowUturnLeft className="mr-2" />
-          Back to All Orders
-        </Button>
+      <div className="pb-6">
+        <Tabs value="pos" onValueChange={(value) => {
+          if (value === "all") navigate("/orders")
+          else if (value === "online") navigate("/orders-online")
+          else if (value === "pos") navigate("/pos-orders")
+        }}>
+          <Tabs.List>
+            <Tabs.Trigger value="all">All Orders</Tabs.Trigger>
+            <Tabs.Trigger value="online">Online</Tabs.Trigger>
+            <Tabs.Trigger value="pos">POS</Tabs.Trigger>
+          </Tabs.List>
+        </Tabs>
       </div>
-      
       <Container>
         <div className="flex items-center justify-between mb-6">
           <Heading level="h1">In-Store Sales History</Heading>

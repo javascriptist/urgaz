@@ -156,14 +156,19 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           if (variant?.inventory_items?.[0]?.inventory_item_id) {
             const inventoryItemId = variant.inventory_items[0].inventory_item_id
             
+            console.log(`Attempting to adjust inventory: item=${inventoryItemId}, location=${stockLocation.id}, adjustment=${-item.quantity}`)
+            
             // Create inventory adjustment (negative to decrease stock)
-            await inventoryModule.adjustInventory(
+            // Pass empty context object for the 4th parameter
+            const result = await inventoryModule.adjustInventory(
               inventoryItemId,
               stockLocation.id,
-              -item.quantity
+              -item.quantity,
+              {}
             )
             
             console.log(`✓ Decremented inventory: ${inventoryItemId} by ${item.quantity} at location ${stockLocation.name}`)
+            console.log(`New stocked quantity: ${result.stocked_quantity}, available: ${result.available_quantity}`)
           } else {
             console.warn(`⚠️ No inventory item found for variant ${item.variant_id}`)
           }
