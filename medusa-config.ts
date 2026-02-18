@@ -28,6 +28,18 @@ module.exports = defineConfig({
   ],
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
+    databaseDriverOptions: {
+      pool: {
+        min: 0,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        acquireTimeoutMillis: 60000,
+      },
+      connection: {
+        ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+      },
+    },
+    redisUrl: process.env.REDIS_URL,
     http: {
       storeCors: process.env.STORE_CORS!,
       adminCors: process.env.ADMIN_CORS!,
@@ -39,6 +51,4 @@ module.exports = defineConfig({
   admin: {
     disable: process.env.DISABLE_MEDUSA_ADMIN === "true",
   },
-
-
 })
