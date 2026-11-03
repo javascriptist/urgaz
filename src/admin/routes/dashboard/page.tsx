@@ -118,7 +118,7 @@ const DashboardPage = () => {
           right={
             <Segmented
               value={range}
-              onChange={setRange}
+              onChange={(v) => setRange(v as "12m" | "6m")}
               options={[
                 { value: "6m", label: "6 months" },
                 { value: "12m", label: "12 months" },

@@ -37,16 +37,16 @@ const ORDER_FIELDS = [
   "payment_status",
   "currency_code",
   "total",
+  "summary.*",
   "metadata",
   "customer.first_name",
   "customer.last_name",
   "shipping_address.first_name",
   "shipping_address.last_name",
   "shipping_address.phone",
-  "items.id",
-  "items.quantity",
-  "items.thumbnail",
-  "items.metadata",
+  // full items + shipping so Medusa can compute order totals
+  "items.*",
+  "shipping_methods.*",
 ]
 
 const isInStore = (o: any) =>
@@ -74,7 +74,8 @@ export function normalizeOrder(o: any, rate: number): StoreOrder {
     (inStore ? m.customer_name : "") ||
     o.email ||
     "—"
-  const total = Number(o.total ?? 0)
+  // summary.current_order_total is what the customer owes after edits/refunds
+  const total = Number(o.summary?.totals?.current_order_total ?? o.summary?.current_order_total ?? o.total ?? 0)
   const items = o.items ?? []
 
   return {
