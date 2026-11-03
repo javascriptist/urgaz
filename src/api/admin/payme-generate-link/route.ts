@@ -2,6 +2,7 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
 import * as fs from "fs"
 import * as path from "path"
+import { getExchangeRate as getSharedRate } from "../../../lib/exchange-rate"
 
 // Disable ALL Medusa authentication - no publishable key required
 export const AUTHENTICATE = false
@@ -9,20 +10,6 @@ export const config = {
   auth: false
 }
 
-// Helper function to get exchange rate
-function getExchangeRate(): number {
-  try {
-    const STORAGE_PATH = path.join(process.cwd(), "data", "exchange-rate.json")
-    if (fs.existsSync(STORAGE_PATH)) {
-      const data = fs.readFileSync(STORAGE_PATH, "utf-8")
-      const parsed = JSON.parse(data)
-      return parsed.rate || 12750
-    }
-  } catch (e) {
-    console.error('Error reading exchange rate:', e)
-  }
-  return 12750 // Default: 1 USD = 12,750 UZS
-}
 
 /**
  * POST /admin/payme-generate-link
@@ -87,7 +74,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }
 
     // Get exchange rate
-    const exchangeRate = getExchangeRate()
+    const exchangeRate = (await getSharedRate(req.scope)).rate
 
     // Convert: USD → UZS → Tiyin
     // Try order.total first, then order.summary.total

@@ -2,6 +2,7 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
 import * as fs from "fs"
 import * as path from "path"
+import { getExchangeRate as getSharedRate } from "../../../lib/exchange-rate"
 
 // CRITICAL: Disable ALL Medusa authentication for this endpoint
 // Payme calls this endpoint directly with their own Basic Auth
@@ -162,20 +163,6 @@ function createResponse(id: any, result: any) {
   }
 }
 
-// Helper function to get exchange rate
-function getExchangeRate(): number {
-  try {
-    const STORAGE_PATH = path.join(process.cwd(), "data", "exchange-rate.json")
-    if (fs.existsSync(STORAGE_PATH)) {
-      const data = fs.readFileSync(STORAGE_PATH, "utf-8")
-      const parsed = JSON.parse(data)
-      return parsed.rate || 12750
-    }
-  } catch (e) {
-    console.error('Error reading exchange rate:', e)
-  }
-  return 12750 // Default: 1 USD = 12,750 UZS
-}
 
 // Helper function to validate order amount
 async function validateOrderAmount(req: MedusaRequest, orderIdOrDisplayId: string, amount: number): Promise<{ valid: boolean; error?: 'NOT_FOUND' | 'AMOUNT_MISMATCH'; order?: any }> {
@@ -218,7 +205,7 @@ async function validateOrderAmount(req: MedusaRequest, orderIdOrDisplayId: strin
     })
     
     // Get exchange rate (USD to UZS)
-    const exchangeRate = getExchangeRate();
+    const exchangeRate = (await getSharedRate(req.scope)).rate;
     
     // Order total is already in USD dollars (e.g., total: 45 = $45.00)
     // Try order.total first, then order.summary.total as fallback
