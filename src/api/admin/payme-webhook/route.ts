@@ -2,6 +2,18 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
 import * as fs from "fs"
 import * as path from "path"
+import { getExchangeRate as getSharedRate } from "../../../lib/exchange-rate"
+import {
+  acceptedKeys,
+  createTransaction,
+  findPendingForOrder,
+  findTransaction,
+  safeEqual,
+  saveKey,
+  statement,
+  toPayme,
+  updateTransaction,
+} from "../../../lib/payme-store"
 
 // CRITICAL: Disable ALL Medusa authentication for this endpoint
 // Payme calls this endpoint directly with their own Basic Auth
@@ -21,15 +33,8 @@ export const config = {
  *          CancelTransaction, CheckTransaction, GetStatement
  */
 
-// In-memory transaction storage (in production, use database)
-const transactions = new Map<string, any>()
-
-// Track which orders have pending transactions (order_id -> transaction_id)
-const orderTransactions = new Map<string, string>()
-
-// Store the current password (in production, store in database)
-let currentPassword = process.env.PAYME_PASSWORD || ''
-const defaultPassword = process.env.PAYME_PASSWORD || ''
+// Transactions and the merchant key are stored in the database (src/modules/payme),
+// so they survive restarts and deploys.
 
 // Merchant API error codes
 const ERRORS = {
@@ -58,86 +63,28 @@ function isPaymeRequest(req: MedusaRequest): boolean {
   return !!hasPaymeHeaders
 }
 
-// Verify Payme authentication
-function verifyAuth(req: MedusaRequest): boolean {
+// Verify Payme authentication: Basic "Paycom:<key>" where <key> is the
+// merchant key (set via ChangePassword, else PAYME_PASSWORD) or the optional
+// sandbox key PAYME_TEST_PASSWORD. Nothing else is accepted — the
+// "test-operation" header can be sent by anyone, so it grants nothing.
+async function verifyAuth(req: MedusaRequest): Promise<boolean> {
   const authHeader = req.headers.authorization
   if (!authHeader || !authHeader.startsWith('Basic ')) {
-    console.log('🔒 Auth failed: No Basic auth header')
+    console.log('🔒 Payme auth failed: no Basic auth header')
     return false
   }
 
-  const base64Credentials = authHeader.split(' ')[1]
-  const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8')
-  
-  const expectedUsername = 'Paycom'
-  // Use the current password (which can be changed via ChangePassword method)
-  const expectedPassword = currentPassword
-  
-  // Check format: "Paycom:password"
-  if (!credentials.startsWith(`${expectedUsername}:`)) {
-    console.log('🔒 Auth failed: Wrong username format')
+  const credentials = Buffer.from(authHeader.split(' ')[1] ?? '', 'base64').toString('utf-8')
+  if (!credentials.startsWith('Paycom:')) {
+    console.log('🔒 Payme auth failed: wrong username')
     return false
   }
-  
-  const passwordPart = credentials.substring(expectedUsername.length + 1)
-  
-  // Log for debugging
-  const credPreview = credentials.substring(0, 30) + '...'
-  console.log('🔑 Checking auth:', { 
-    credPreview, 
-    fullLength: credentials.length,
-    expectedPassLength: expectedPassword.length,
-    passwordMatch: passwordPart === expectedPassword ? 'YES' : 'NO',
-    passwordPreview: passwordPart.substring(0, 20) + '...'
-  })
-  
-  // Check if this is a test request
-  const isTestRequest = req.headers['test-operation'] === 'Paycom'
-  
-  // ALWAYS check exact password match first (especially important after ChangePassword)
-  const isPasswordMatch = passwordPart === expectedPassword
-  
-  if (isPasswordMatch) {
-    console.log('✅ Auth: Password matches - ACCEPTED')
-    return true
-  }
-  
-  // If password was changed via ChangePassword AND not in test mode, ONLY accept the new password
-  // In test mode, still allow flexible authentication for sandbox testing
-  const hasCustomPassword = currentPassword !== defaultPassword
-  if (hasCustomPassword && !isTestRequest) {
-    console.log('🔒 Auth failed: Password was changed (production mode), only new password accepted')
-    return false
-  }
-  
-  // In test mode with default password: Accept Payme's legitimate test passwords
-  // This only applies when password hasn't been changed via ChangePassword
-  // Reject obviously invalid ones (e.g., "Uzcard:...", "someRandomString...")
-  if (isTestRequest && passwordPart && passwordPart.length >= 20) {
-    // Reject if password contains colon (indicates malformed test like "Uzcard:...")
-    if (passwordPart.includes(':')) {
-      console.log('🔒 Test sandbox: Malformed password with colon - REJECTED')
-      return false
-    }
-    
-    // Reject if password starts with known invalid prefixes
-    const invalidPrefixes = ['Uzcard', 'someRandom', 'test', 'invalid']
-    const startsWithInvalid = invalidPrefixes.some(prefix => 
-      passwordPart.toLowerCase().startsWith(prefix.toLowerCase())
-    )
-    
-    if (startsWithInvalid) {
-      console.log('🔒 Test sandbox: Invalid password prefix - REJECTED')
-      return false
-    }
-    
-    // Accept as legitimate Payme test password
-    console.log('� Test sandbox: Valid Payme test password - ACCEPTED')
-    return true
-  }
-  
-  console.log('🔒 Auth failed: Invalid password')
-  return false
+
+  const passwordPart = credentials.substring('Paycom:'.length)
+  const keys = await acceptedKeys(req.scope)
+  const ok = keys.some((k) => safeEqual(passwordPart, k))
+  if (!ok) console.log('🔒 Payme auth failed: key mismatch')
+  return ok
 }
 
 // Create JSON-RPC error response
@@ -162,20 +109,6 @@ function createResponse(id: any, result: any) {
   }
 }
 
-// Helper function to get exchange rate
-function getExchangeRate(): number {
-  try {
-    const STORAGE_PATH = path.join(process.cwd(), "data", "exchange-rate.json")
-    if (fs.existsSync(STORAGE_PATH)) {
-      const data = fs.readFileSync(STORAGE_PATH, "utf-8")
-      const parsed = JSON.parse(data)
-      return parsed.rate || 12750
-    }
-  } catch (e) {
-    console.error('Error reading exchange rate:', e)
-  }
-  return 12750 // Default: 1 USD = 12,750 UZS
-}
 
 // Helper function to validate order amount
 async function validateOrderAmount(req: MedusaRequest, orderIdOrDisplayId: string, amount: number): Promise<{ valid: boolean; error?: 'NOT_FOUND' | 'AMOUNT_MISMATCH'; order?: any }> {
@@ -218,7 +151,7 @@ async function validateOrderAmount(req: MedusaRequest, orderIdOrDisplayId: strin
     })
     
     // Get exchange rate (USD to UZS)
-    const exchangeRate = getExchangeRate();
+    const exchangeRate = (await getSharedRate(req.scope)).rate;
     
     // Order total is already in USD dollars (e.g., total: 45 = $45.00)
     // Try order.total first, then order.summary.total as fallback
@@ -276,7 +209,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
   // CRITICAL: Verify authentication FIRST before processing any request
   // Return error -32504 if authentication fails
-  if (!verifyAuth(req)) {
+  if (!(await verifyAuth(req))) {
     console.log('❌ Authentication failed - returning error -32504')
     // IMPORTANT: Return 200 status with error in JSON-RPC format, not 401
     return res.status(200).json(createError(
@@ -356,14 +289,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         }
 
         // Check if transaction already exists (idempotency check - MUST be first)
-        const existing = transactions.get(transactionId)
+        const existing = await findTransaction(req.scope, transactionId)
         if (existing) {
           console.log('✅ Returning existing transaction (idempotent):', transactionId)
           if (existing.state === 2) {
             return res.json(createError(id, ERRORS.ALREADY_PAID))
           }
           // Return existing transaction (same result as first call)
-          return res.json(createResponse(id, existing))
+          return res.json(createResponse(id, toPayme(existing)))
         }
 
         // Validate order exists and amount matches
@@ -380,12 +313,11 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         }
 
         // Check if this order already has a DIFFERENT pending transaction
-        const existingTransactionId = orderTransactions.get(orderId)
-        if (existingTransactionId && existingTransactionId !== transactionId) {
-          const existingTx = transactions.get(existingTransactionId)
+        const existingTx = await findPendingForOrder(req.scope, String(orderId), transactionId)
+        {
           // If there's a pending transaction (state 1) with different ID, reject new one
-          if (existingTx && existingTx.state === 1) {
-            console.log('❌ Order already has different pending transaction:', { orderId, existing: existingTransactionId, new: transactionId })
+          if (existingTx) {
+            console.log('❌ Order already has different pending transaction:', { orderId, existing: existingTx.id, new: transactionId })
             return res.json(createError(id, {
               code: -31099,
               message: {
@@ -397,66 +329,50 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           }
         }
 
-        // Create new transaction
-        const transaction = {
-          transaction: transactionId,
-          state: 1, // State 1: Created (awaiting payment)
-          create_time: time,
-          perform_time: 0,
-          cancel_time: 0,
-          reason: null,
-          receivers: null
-        }
+        // Create new transaction (state 1: created, awaiting payment)
+        const created = await createTransaction(req.scope, {
+          id: transactionId,
+          order_key: String(orderId),
+          order_id: validation.order?.id ?? null,
+          amount,
+          create_time: Number(time) || Date.now(),
+        })
 
-        transactions.set(transactionId, transaction)
-        
-        // Track this transaction for the order
-        if (orderId) {
-          orderTransactions.set(orderId, transactionId)
-        }
-        
-        console.log('✅ Transaction created:', transaction)
+        console.log('✅ Transaction created:', transactionId)
 
-        return res.json(createResponse(id, transaction))
+        return res.json(createResponse(id, toPayme(created)))
       }
 
       case 'PerformTransaction': {
         // Perform transaction (complete payment)
         const { id: transactionId } = params
 
-        const transaction = transactions.get(transactionId)
-        if (!transaction) {
+        const found = await findTransaction(req.scope, transactionId)
+        if (!found) {
           return res.json(createError(id, ERRORS.TRANSACTION_NOT_FOUND))
         }
 
-        if (transaction.state === 2) {
+        if (found.state === 2) {
           // Already performed
-          return res.json(createResponse(id, transaction))
+          return res.json(createResponse(id, toPayme(found)))
         }
 
-        if (transaction.state === -1 || transaction.state === -2) {
+        if (found.state === -1 || found.state === -2) {
           return res.json(createError(id, ERRORS.TRANSACTION_CANCELLED))
         }
 
         // Update transaction state to performed
-        transaction.state = 2
-        transaction.perform_time = Date.now()
+        const transaction = toPayme(
+          await updateTransaction(req.scope, transactionId, { state: 2, perform_time: new Date() })
+        )
 
-        transactions.set(transactionId, transaction)
-
-        console.log('✅ Transaction performed:', transaction)
+        console.log('✅ Transaction performed:', transactionId)
 
         // Mark order as paid in your system
         try {
           // Extract order_id from the transaction
           // We need to find which order this transaction belongs to
-          let orderId: string | null = null
-          for (const [orderKey, txId] of orderTransactions.entries()) {
-            if (txId === transactionId) {
-              orderId = orderKey
-              break
-            }
-          }
+          const orderId: string | null = found.order_id ?? found.order_key ?? null
 
           if (orderId) {
             console.log('💳 Marking order as paid:', orderId)
@@ -518,64 +434,68 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         // Cancel transaction
         const { id: transactionId, reason } = params
 
-        const transaction = transactions.get(transactionId)
-        if (!transaction) {
+        const found = await findTransaction(req.scope, transactionId)
+        if (!found) {
           return res.json(createError(id, ERRORS.TRANSACTION_NOT_FOUND))
         }
 
-        if (transaction.state === 2) {
-          // Transaction was performed, cancel it
-          transaction.state = -2 // State -2: Cancelled after perform
-          transaction.cancel_time = Date.now()
-          transaction.reason = reason
-        } else if (transaction.state === 1) {
-          // Transaction was created but not performed
-          transaction.state = -1 // State -1: Cancelled before perform
-          transaction.cancel_time = Date.now()
-          transaction.reason = reason
-          
-          // Clear order tracking when transaction is cancelled
-          for (const [orderId, txId] of orderTransactions.entries()) {
-            if (txId === transactionId) {
-              orderTransactions.delete(orderId)
-              break
-            }
+        // Already cancelled: return as-is (idempotent)
+        if (found.state === -1 || found.state === -2) {
+          return res.json(createResponse(id, toPayme(found)))
+        }
+
+        const wasPerformed = found.state === 2
+        const updated = await updateTransaction(req.scope, transactionId, {
+          state: wasPerformed ? -2 : -1, // -2 after perform (refund), -1 before
+          cancel_time: new Date(),
+          reason: typeof reason === 'number' ? reason : null,
+        })
+
+        // A refund of a performed payment: the order is no longer paid
+        if (wasPerformed && found.order_id) {
+          try {
+            const orderModuleService = req.scope.resolve(Modules.ORDER)
+            const order = await orderModuleService.retrieveOrder(found.order_id, { select: ['id', 'metadata'] })
+            await orderModuleService.updateOrders(found.order_id, {
+              metadata: {
+                ...(order.metadata || {}),
+                payment_captured: false,
+                payment_status_override: 'refunded',
+                payme_refunded_at: new Date().toISOString(),
+              },
+            })
+          } catch (error) {
+            console.error('❌ Error marking order as refunded:', error)
           }
         }
 
-        transactions.set(transactionId, transaction)
+        console.log('✅ Transaction cancelled:', transactionId, wasPerformed ? '(after perform)' : '')
 
-        console.log('✅ Transaction cancelled:', transaction)
-
-        return res.json(createResponse(id, transaction))
+        return res.json(createResponse(id, toPayme(updated)))
       }
 
       case 'CheckTransaction': {
         // Check transaction status
         const { id: transactionId } = params
 
-        const transaction = transactions.get(transactionId)
-        if (!transaction) {
+        const found = await findTransaction(req.scope, transactionId)
+        if (!found) {
           return res.json(createError(id, ERRORS.TRANSACTION_NOT_FOUND))
         }
 
-        console.log('✅ CheckTransaction:', transaction)
-
-        return res.json(createResponse(id, transaction))
+        return res.json(createResponse(id, toPayme(found)))
       }
 
       case 'GetStatement': {
         // Get list of transactions for a period
         const { from, to } = params
 
-        const statement = Array.from(transactions.values()).filter(t => {
-          return t.create_time >= from && t.create_time <= to
-        })
+        const transactionsList = await statement(req.scope, Number(from), Number(to))
 
-        console.log('✅ GetStatement:', { from, to, count: statement.length })
+        console.log('✅ GetStatement:', { from, to, count: transactionsList.length })
 
         return res.json(createResponse(id, {
-          transactions: statement
+          transactions: transactionsList
         }))
       }
 
@@ -591,13 +511,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           }))
         }
 
-        // Update the password
-        const oldPassword = currentPassword
-        currentPassword = password
+        // Persist the new key (never log it)
+        await saveKey(req.scope, password)
 
-        console.log('✅ Password changed successfully')
-        console.log('   Old password:', oldPassword.substring(0, 10) + '...')
-        console.log('   New password:', password.substring(0, 10) + '...')
+        console.log('✅ Payme merchant key changed')
 
         // Return success
         return res.json(createResponse(id, {

@@ -1,4 +1,4 @@
-import { defineRouteConfig } from "@medusajs/admin-sdk"
+// Developer tool — reachable at /app/payme-test, intentionally not in the sidebar
 import { Container, Heading, Text } from "@medusajs/ui"
 import { CreditCard } from "@medusajs/icons"
 
@@ -88,9 +88,5 @@ window.location.href = paymentUrl // Redirect to Payme`}</pre>
   )
 }
 
-export const config = defineRouteConfig({
-  label: "Payme Test",
-  icon: CreditCard,
-})
 
 export default PaymeTestPage

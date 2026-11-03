@@ -5,7 +5,10 @@ loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
 module.exports = defineConfig({
   modules: [
-    // ...
+    // Payme Merchant API transactions + settings (persisted, see src/modules/payme)
+    {
+      resolve: "./src/modules/payme",
+    },
     {
       resolve: "@medusajs/medusa/file",
       options: {
